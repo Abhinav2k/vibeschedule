@@ -1,48 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Subtle outer drop shadow -->
+    <!-- Ambient Gaussian Drop Shadow / Depth Occlusion -->
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="26dp" />
-            <solid android:color="#20000000" />
+            <corners android:radius="28dp" />
+            <solid android:color="#2E000000" />
         </shape>
     </item>
 
-    <!-- Translucent Frosted Glass Base (signature iPhone liquid glass tray) -->
+    <!-- Deep Diffused Glass Body (Soft blurred optical absorption) -->
     <item
-        android:left="0.5dp"
-        android:top="0.5dp"
-        android:right="0.5dp"
-        android:bottom="0.5dp">
+        android:left="0.75dp"
+        android:top="0.75dp"
+        android:right="0.75dp"
+        android:bottom="0.75dp">
         <shape android:shape="rectangle">
-            <corners android:radius="26dp" />
+            <corners android:radius="27dp" />
             <gradient
                 android:angle="270"
-                android:startColor="#592A3042"
-                android:centerColor="#471A1E2B"
-                android:endColor="#5412151F" />
+                android:startColor="#4D283248"
+                android:centerColor="#38181F2E"
+                android:endColor="#47101420" />
             <stroke
                 android:width="1dp"
-                android:color="#4DFFFFFF" />
+                android:color="#52FFFFFF" />
         </shape>
     </item>
 
-    <!-- Top Specular Refraction Edge (Apple glass top reflection) -->
+    <!-- Prismatic Chromatic Dispersion / Diffraction Fringe (Iridescent rim) -->
     <item
         android:left="1dp"
         android:top="1dp"
         android:right="1dp"
-        android:bottom="18dp">
+        android:bottom="16dp">
         <shape android:shape="rectangle">
             <corners
-                android:topLeftRadius="25dp"
-                android:topRightRadius="25dp"
+                android:topLeftRadius="26dp"
+                android:topRightRadius="26dp"
                 android:bottomLeftRadius="0dp"
                 android:bottomRightRadius="0dp" />
+            <!-- Angle 45 creates a prismatic diagonal light sheen (violet -> cyan -> specular white) -->
+            <gradient
+                android:angle="45"
+                android:startColor="#33AF52DE"
+                android:centerColor="#59FFFFFF"
+                android:endColor="#335AC8FA" />
+        </shape>
+    </item>
+
+    <!-- Inner Refractive Light Diffusion (Simulating optical glass volume) -->
+    <item
+        android:left="1.5dp"
+        android:top="1.5dp"
+        android:right="1.5dp"
+        android:bottom="1.5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="25dp" />
             <gradient
                 android:angle="270"
-                android:startColor="#38FFFFFF"
-                android:endColor="#00FFFFFF" />
+                android:startColor="#24FFFFFF"
+                android:centerColor="#05FFFFFF"
+                android:endColor="#0A000000" />
+            <stroke
+                android:width="0.5dp"
+                android:color="#24FFFFFF" />
         </shape>
     </item>
 </layer-list>

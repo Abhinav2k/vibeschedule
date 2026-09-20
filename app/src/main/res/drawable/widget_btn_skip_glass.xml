@@ -1,91 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Pressed state: vibrant illuminated amber glass lens -->
+    <!-- Pressed state: Brilliant illuminated round lens with radiant amber flare -->
     <item android:state_pressed="true">
         <layer-list>
             <item>
-                <shape android:shape="rectangle">
-                    <corners android:radius="20dp" />
+                <shape android:shape="oval">
                     <gradient
                         android:angle="270"
-                        android:startColor="#59FF9F0A"
-                        android:centerColor="#3DFF9F0A"
-                        android:endColor="#2BFF9F0A" />
+                        android:startColor="#66FF9F0A"
+                        android:centerColor="#4DFF9F0A"
+                        android:endColor="#33FF9F0A" />
                     <stroke
-                        android:width="1.2dp"
-                        android:color="#CCFF9F0A" />
+                        android:width="1.5dp"
+                        android:color="#E6FF9F0A" />
                 </shape>
             </item>
+            <!-- Convex lens specular highlight -->
             <item
-                android:left="1dp"
-                android:top="1dp"
-                android:right="1dp"
-                android:bottom="12dp">
-                <shape android:shape="rectangle">
-                    <corners
-                        android:topLeftRadius="19dp"
-                        android:topRightRadius="19dp"
-                        android:bottomLeftRadius="0dp"
-                        android:bottomRightRadius="0dp" />
+                android:left="2dp"
+                android:top="2dp"
+                android:right="2dp"
+                android:bottom="20dp">
+                <shape android:shape="oval">
                     <gradient
                         android:angle="270"
-                        android:startColor="#66FFFFFF"
+                        android:startColor="#80FFFFFF"
                         android:endColor="#00FFFFFF" />
                 </shape>
             </item>
         </layer-list>
     </item>
 
-    <!-- Default state: iPhone liquid frosted glass lens with luminous amber backlight -->
+    <!-- Default state: Round circular lens with diffraction edge & amber core -->
     <item>
         <layer-list>
-            <!-- Frosted glass body -->
+            <!-- Lens outer body with prismatic diffraction stroke -->
             <item>
-                <shape android:shape="rectangle">
-                    <corners android:radius="20dp" />
+                <shape android:shape="oval">
                     <gradient
                         android:angle="270"
-                        android:startColor="#38FFFFFF"
-                        android:centerColor="#202A384A"
-                        android:endColor="#18FF9F0A" />
+                        android:startColor="#3DFFFFFF"
+                        android:centerColor="#26243044"
+                        android:endColor="#1AFF9F0A" />
                     <stroke
-                        android:width="1dp"
-                        android:color="#52FFFFFF" />
+                        android:width="1.2dp"
+                        android:color="#59FFFFFF" />
                 </shape>
             </item>
-            <!-- Luminous amber internal refraction -->
+            <!-- Internal radiant amber diffraction core -->
             <item
-                android:left="1dp"
-                android:top="1dp"
-                android:right="1dp"
-                android:bottom="1dp">
-                <shape android:shape="rectangle">
-                    <corners android:radius="19dp" />
+                android:left="1.5dp"
+                android:top="1.5dp"
+                android:right="1.5dp"
+                android:bottom="1.5dp">
+                <shape android:shape="oval">
                     <gradient
-                        android:angle="270"
-                        android:startColor="#1AFFFFFF"
-                        android:centerColor="#0FFF9F0A"
-                        android:endColor="#26FF9F0A" />
+                        android:angle="45"
+                        android:startColor="#1AFFD60A"
+                        android:centerColor="#14FF9F0A"
+                        android:endColor="#29FF9F0A" />
                     <stroke
-                        android:width="0.5dp"
-                        android:color="#40FF9F0A" />
+                        android:width="0.75dp"
+                        android:color="#4DFF9F0A" />
                 </shape>
             </item>
-            <!-- Top specular glass sheen -->
+            <!-- Top spherical glass lens reflection -->
             <item
-                android:left="1dp"
-                android:top="1dp"
-                android:right="1dp"
-                android:bottom="14dp">
-                <shape android:shape="rectangle">
-                    <corners
-                        android:topLeftRadius="19dp"
-                        android:topRightRadius="19dp"
-                        android:bottomLeftRadius="0dp"
-                        android:bottomRightRadius="0dp" />
+                android:left="3dp"
+                android:top="2dp"
+                android:right="3dp"
+                android:bottom="24dp">
+                <shape android:shape="oval">
                     <gradient
                         android:angle="270"
-                        android:startColor="#4DFFFFFF"
+                        android:startColor="#59FFFFFF"
                         android:endColor="#00FFFFFF" />
                 </shape>
             </item>

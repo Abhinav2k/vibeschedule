@@ -7,46 +7,56 @@
     android:baselineAligned="false"
     android:gravity="center"
     android:orientation="horizontal"
-    android:padding="6dp">
+    android:padding="4dp">
 
-    <!-- Button 1: Skip for this period -->
+    <!-- Left Half: Skip for this period -->
     <FrameLayout
-        android:id="@+id/btn_widget_skip"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:layout_marginEnd="3dp"
-        android:background="@drawable/widget_btn_skip_glass"
-        android:clickable="true"
-        android:focusable="true">
+        android:layout_weight="1">
 
-        <ImageView
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+        <FrameLayout
+            android:id="@+id/btn_widget_skip"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:layout_gravity="center"
-            android:contentDescription="Skip This Period"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_widget_skip" />
+            android:background="@drawable/widget_btn_skip_glass"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:contentDescription="Skip This Period"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_widget_skip" />
+        </FrameLayout>
     </FrameLayout>
 
-    <!-- Button 2: Cancel active schedule -->
+    <!-- Right Half: Cancel active schedule -->
     <FrameLayout
-        android:id="@+id/btn_widget_cancel"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:layout_marginStart="3dp"
-        android:background="@drawable/widget_btn_cancel_glass"
-        android:clickable="true"
-        android:focusable="true">
+        android:layout_weight="1">
 
-        <ImageView
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+        <FrameLayout
+            android:id="@+id/btn_widget_cancel"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:layout_gravity="center"
-            android:contentDescription="Cancel Schedule"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_widget_cancel" />
+            android:background="@drawable/widget_btn_cancel_glass"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:contentDescription="Cancel Schedule"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_widget_cancel" />
+        </FrameLayout>
     </FrameLayout>
 
 </LinearLayout>
