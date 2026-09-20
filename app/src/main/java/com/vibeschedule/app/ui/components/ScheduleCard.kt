@@ -1,6 +1,7 @@
 package com.vibeschedule.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.DropdownMenu
@@ -42,7 +43,11 @@ import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.ui.theme.AccentPurple
+import com.vibeschedule.app.ui.theme.AccentRed
 import com.vibeschedule.app.ui.theme.AccentTeal
+import com.vibeschedule.app.ui.theme.TextPrimary
+import com.vibeschedule.app.ui.theme.TextSecondary
+import com.vibeschedule.app.ui.theme.TextTertiary
 import java.util.Calendar
 
 @Composable
@@ -58,8 +63,9 @@ fun ScheduleCard(
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        backgroundColor = if (rule.isEnabled) Color(0x1AFFFFFF) else Color(0x0CFFFFFF)
+            .padding(horizontal = 20.dp, vertical = 5.dp),
+        shape = RoundedCornerShape(22.dp),
+        backgroundColor = if (rule.isEnabled) Color(0x15FFFFFF) else Color(0x08FFFFFF)
     ) {
         // Header: Title + Time + Switch + Menu
         Row(
@@ -72,14 +78,16 @@ fun ScheduleCard(
                     text = rule.title,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (rule.isEnabled) Color.White else Color(0x66FFFFFF)
+                    letterSpacing = (-0.2).sp,
+                    color = if (rule.isEnabled) TextPrimary else TextTertiary
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${rule.formatStartTime()}  ➔  ${rule.formatEndTime()}",
-                    fontSize = 20.sp,
+                    text = "${rule.formatStartTime()} — ${rule.formatEndTime()}",
+                    fontSize = 21.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (rule.isEnabled) AccentPurple else Color(0x55FFFFFF)
+                    letterSpacing = (-0.3).sp,
+                    color = if (rule.isEnabled) AccentPurple else TextTertiary
                 )
             }
 
@@ -90,16 +98,17 @@ fun ScheduleCard(
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = AccentTeal,
-                        uncheckedTrackColor = Color(0x22FFFFFF)
+                        uncheckedTrackColor = Color(0x20FFFFFF),
+                        uncheckedThumbColor = Color(0x88FFFFFF)
                     )
                 )
 
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
-                            imageVector = Icons.Default.MoreVert,
+                            imageVector = Icons.Default.MoreHoriz,
                             contentDescription = "Options",
-                            tint = Color(0x88FFFFFF)
+                            tint = TextSecondary
                         )
                     }
                     DropdownMenu(
@@ -113,17 +122,17 @@ fun ScheduleCard(
                                 onEdit()
                             },
                             leadingIcon = {
-                                Icon(Icons.Default.Edit, contentDescription = null)
+                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                            text = { Text("Delete", color = AccentRed) },
                             onClick = {
                                 menuExpanded = false
                                 onDelete()
                             },
                             leadingIcon = {
-                                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Default.Delete, contentDescription = null, tint = AccentRed, modifier = Modifier.size(18.dp))
                             }
                         )
                     }
@@ -143,25 +152,31 @@ fun ScheduleCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(CircleShape)
                     .background(
-                        if (rule.targetMode == SoundMode.VIBRATE) AccentPurple.copy(alpha = 0.2f)
-                        else MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                        if (rule.targetMode == SoundMode.VIBRATE) AccentPurple.copy(alpha = 0.18f)
+                        else AccentRed.copy(alpha = 0.18f)
                     )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .border(
+                        0.5.dp,
+                        if (rule.targetMode == SoundMode.VIBRATE) AccentPurple.copy(alpha = 0.35f)
+                        else AccentRed.copy(alpha = 0.35f),
+                        CircleShape
+                    )
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Icon(
                     imageVector = if (rule.targetMode == SoundMode.VIBRATE) Icons.Default.Vibration else Icons.Default.NotificationsOff,
                     contentDescription = null,
-                    modifier = Modifier.size(15.dp),
-                    tint = if (rule.targetMode == SoundMode.VIBRATE) AccentPurple else MaterialTheme.colorScheme.error
+                    modifier = Modifier.size(12.dp),
+                    tint = if (rule.targetMode == SoundMode.VIBRATE) AccentPurple else AccentRed
                 )
-                Spacer(modifier = Modifier.width(5.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = rule.targetMode.displayName,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (rule.targetMode == SoundMode.VIBRATE) AccentPurple else MaterialTheme.colorScheme.error
+                    color = if (rule.targetMode == SoundMode.VIBRATE) AccentPurple else AccentRed
                 )
             }
 
@@ -183,18 +198,18 @@ private fun DaysOfWeekRow(daysOfWeek: List<Int>, isEnabled: Boolean) {
         Calendar.SUNDAY to "S"
     )
 
-    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         dayLabels.forEach { (dayInt, label) ->
             val isSelected = daysOfWeek.contains(dayInt)
             Box(
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(20.dp)
                     .clip(CircleShape)
                     .background(
                         when {
                             !isEnabled -> Color.Transparent
                             isSelected -> AccentTeal
-                            else -> Color(0x18FFFFFF)
+                            else -> Color(0x12FFFFFF)
                         }
                     ),
                 contentAlignment = Alignment.Center
@@ -204,9 +219,9 @@ private fun DaysOfWeekRow(daysOfWeek: List<Int>, isEnabled: Boolean) {
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = when {
-                        !isEnabled && isSelected -> Color(0x55FFFFFF)
+                        !isEnabled && isSelected -> TextTertiary
                         isSelected -> Color.White
-                        else -> Color(0x44FFFFFF)
+                        else -> TextTertiary
                     }
                 )
             }

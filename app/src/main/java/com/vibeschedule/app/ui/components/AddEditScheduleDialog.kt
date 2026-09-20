@@ -2,12 +2,11 @@ package com.vibeschedule.app.ui.components
 
 import android.app.TimePickerDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,12 +22,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,11 +48,14 @@ import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.ui.theme.AccentPurple
+import com.vibeschedule.app.ui.theme.AccentRed
 import com.vibeschedule.app.ui.theme.AccentTeal
+import com.vibeschedule.app.ui.theme.TextPrimary
+import com.vibeschedule.app.ui.theme.TextSecondary
+import com.vibeschedule.app.ui.theme.TextTertiary
 import java.util.Calendar
 import java.util.Locale
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddEditScheduleDialog(
     initialRule: ScheduleRule?,
@@ -86,17 +88,20 @@ fun AddEditScheduleDialog(
             { _, h, m -> onTimeSelected(h, m) },
             initialH,
             initialM,
-            true // 24-hour format
+            true
         ).show()
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color(0xFF141620),
+        shape = RoundedCornerShape(26.dp),
         title = {
             Text(
-                text = if (initialRule == null) "New Vibration Schedule" else "Edit Schedule",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                text = if (initialRule == null) "New Schedule" else "Edit Schedule",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
             )
         },
         text = {
@@ -110,8 +115,15 @@ fun AddEditScheduleDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Label (e.g. Work, College, Sleep)") },
+                    placeholder = { Text("Label (e.g. Work, Lecture)", color = TextTertiary) },
                     singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentPurple,
+                        unfocusedBorderColor = Color(0x25FFFFFF),
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    ),
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -121,7 +133,7 @@ fun AddEditScheduleDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     TimeBox(
-                        label = "Starts at",
+                        label = "Starts",
                         time = String.format(Locale.getDefault(), "%02d:%02d", startHour, startMinute),
                         onClick = {
                             showTimePicker(startHour, startMinute) { h, m ->
@@ -133,7 +145,7 @@ fun AddEditScheduleDialog(
                     )
 
                     TimeBox(
-                        label = "Ends at",
+                        label = "Ends",
                         time = String.format(Locale.getDefault(), "%02d:%02d", endHour, endMinute),
                         onClick = {
                             showTimePicker(endHour, endMinute) { h, m ->
@@ -147,9 +159,10 @@ fun AddEditScheduleDialog(
 
                 // Days Selection Header
                 Text(
-                    text = "Repeat on",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Repeat",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextSecondary
                 )
 
                 // Quick Day Presets
@@ -167,7 +180,7 @@ fun AddEditScheduleDialog(
                     )
                     val weekends = listOf(Calendar.SATURDAY, Calendar.SUNDAY)
 
-                    PresetChip(text = "Everyday", isSelected = selectedDays.size == 7) {
+                    PresetChip(text = "Daily", isSelected = selectedDays.size == 7) {
                         selectedDays = allDays
                     }
                     PresetChip(
@@ -203,9 +216,9 @@ fun AddEditScheduleDialog(
                         val isSelected = selectedDays.contains(dayInt)
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
-                                .background(if (isSelected) AccentTeal else MaterialTheme.colorScheme.surfaceVariant)
+                                .background(if (isSelected) AccentTeal else Color(0x15FFFFFF))
                                 .clickable {
                                     selectedDays = if (isSelected) {
                                         selectedDays - dayInt
@@ -217,8 +230,9 @@ fun AddEditScheduleDialog(
                         ) {
                             Text(
                                 text = label,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isSelected) Color.White else TextTertiary
                             )
                         }
                     }
@@ -226,32 +240,35 @@ fun AddEditScheduleDialog(
 
                 // Sound Mode Selection
                 Text(
-                    text = "When active, set mode to",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Mode",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextSecondary
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterChip(
                         selected = targetMode == SoundMode.VIBRATE,
                         onClick = { targetMode = SoundMode.VIBRATE },
                         label = { Text("Vibrate") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AccentPurple.copy(alpha = 0.2f),
+                            selectedContainerColor = AccentPurple.copy(alpha = 0.25f),
                             selectedLabelColor = AccentPurple
-                        )
+                        ),
+                        shape = CircleShape
                     )
                     FilterChip(
                         selected = targetMode == SoundMode.SILENT,
                         onClick = { targetMode = SoundMode.SILENT },
                         label = { Text("Silent (DND)") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
-                            selectedLabelColor = MaterialTheme.colorScheme.error
-                        )
+                            selectedContainerColor = AccentRed.copy(alpha = 0.25f),
+                            selectedLabelColor = AccentRed
+                        ),
+                        shape = CircleShape
                     )
                 }
             }
@@ -279,14 +296,16 @@ fun AddEditScheduleDialog(
                     )
                     onSave(newRule)
                 },
-                enabled = selectedDays.isNotEmpty()
+                enabled = selectedDays.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
+                shape = CircleShape
             ) {
-                Text("Save")
+                Text("Save", fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = TextSecondary)
             }
         }
     )
@@ -297,24 +316,24 @@ private fun TimeBox(label: String, time: String, onClick: () -> Unit, modifier: 
     Surface(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0x18FFFFFF)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(label, style = MaterialTheme.typography.labelSmall)
-            Spacer(modifier = Modifier.height(4.dp))
+            Text(label, fontSize = 11.sp, color = TextTertiary)
+            Spacer(modifier = Modifier.height(3.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.AccessTime,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                     tint = AccentPurple
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(time, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(time, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             }
         }
     }
@@ -324,16 +343,17 @@ private fun TimeBox(label: String, time: String, onClick: () -> Unit, modifier: 
 private fun PresetChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) AccentTeal.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant)
+            .clip(CircleShape)
+            .background(if (isSelected) AccentTeal.copy(alpha = 0.25f) else Color(0x12FFFFFF))
+            .border(0.5.dp, if (isSelected) AccentTeal.copy(alpha = 0.5f) else Color.Transparent, CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
             text = text,
             fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) AccentTeal else MaterialTheme.colorScheme.onSurfaceVariant
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (isSelected) AccentTeal else TextSecondary
         )
     }
 }

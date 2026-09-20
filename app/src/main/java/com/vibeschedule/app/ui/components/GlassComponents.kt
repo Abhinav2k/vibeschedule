@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -36,10 +35,11 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vibeschedule.app.ui.theme.AccentPurple
 import com.vibeschedule.app.ui.theme.AccentTeal
 import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.SurfaceGlass
+import com.vibeschedule.app.ui.theme.TextPrimary
+import com.vibeschedule.app.ui.theme.TextSecondary
 
 @Composable
 fun GlassCard(
@@ -53,7 +53,7 @@ fun GlassCard(
         modifier = modifier
             .clip(shape)
             .background(backgroundColor)
-            .border(BorderStroke(1.dp, borderBrush), shape)
+            .border(BorderStroke(0.75.dp, borderBrush), shape)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -69,14 +69,14 @@ fun LiquidTabSwitcher(
     tabs: List<String>,
     modifier: Modifier = Modifier
 ) {
-    val pillShape = RoundedCornerShape(50)
+    val pillShape = CircleShape
 
     Box(
         modifier = modifier
             .clip(pillShape)
-            .background(Color(0x18FFFFFF))
-            .border(BorderStroke(1.dp, GlassBorderBrush), pillShape)
-            .padding(4.dp)
+            .background(Color(0x12FFFFFF))
+            .border(BorderStroke(0.75.dp, Color(0x1CFFFFFF)), pillShape)
+            .padding(3.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -85,13 +85,13 @@ fun LiquidTabSwitcher(
             tabs.forEachIndexed { index, title ->
                 val isSelected = selectedTab == index
                 val animatedBg by animateColorAsState(
-                    targetValue = if (isSelected) Color(0x358B5CF6) else Color.Transparent,
-                    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                    targetValue = if (isSelected) Color(0x28FFFFFF) else Color.Transparent,
+                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                     label = "tabBg"
                 )
                 val animatedTextColor by animateColorAsState(
-                    targetValue = if (isSelected) Color.White else Color(0x99FFFFFF),
-                    animationSpec = tween(durationMillis = 200),
+                    targetValue = if (isSelected) TextPrimary else TextSecondary,
+                    animationSpec = tween(durationMillis = 150),
                     label = "tabText"
                 )
 
@@ -102,7 +102,7 @@ fun LiquidTabSwitcher(
                         .then(
                             if (isSelected) {
                                 Modifier.border(
-                                    BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color(0x668B5CF6), Color(0x6610B981)))),
+                                    BorderStroke(0.5.dp, Color(0x35FFFFFF)),
                                     pillShape
                                 )
                             } else Modifier
@@ -112,13 +112,14 @@ fun LiquidTabSwitcher(
                             indication = null,
                             onClick = { onTabSelected(index) }
                         )
-                        .padding(horizontal = 18.dp, vertical = 7.dp),
+                        .padding(horizontal = 20.dp, vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = title,
                         fontSize = 13.sp,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        letterSpacing = (-0.1).sp,
                         color = animatedTextColor
                     )
                 }
@@ -135,7 +136,7 @@ fun GlowingIndicator(
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 0.85f,
-        targetValue = 1.25f,
+        targetValue = 1.3f,
         animationSpec = infiniteRepeatable(
             animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -143,8 +144,8 @@ fun GlowingIndicator(
         label = "scale"
     )
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 0.9f,
+        initialValue = 0.3f,
+        targetValue = 0.85f,
         animationSpec = infiniteRepeatable(
             animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -155,13 +156,13 @@ fun GlowingIndicator(
     val color = if (isActive) AccentTeal else Color(0x66FFFFFF)
 
     Box(
-        modifier = modifier.size(16.dp),
+        modifier = modifier.size(14.dp),
         contentAlignment = Alignment.Center
     ) {
         if (isActive) {
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(14.dp)
                     .scale(scale)
                     .clip(CircleShape)
                     .background(color.copy(alpha = alpha * 0.4f))
@@ -169,7 +170,7 @@ fun GlowingIndicator(
         }
         Box(
             modifier = Modifier
-                .size(8.dp)
+                .size(7.dp)
                 .clip(CircleShape)
                 .background(color)
         )
