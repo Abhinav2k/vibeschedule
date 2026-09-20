@@ -17,6 +17,12 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
+data class QuickMuteConflict(
+    val title: String,
+    val message: String,
+    val pendingMinutes: Int
+)
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = ScheduleRepository(application)
@@ -28,6 +34,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeSchedule = MutableStateFlow<ScheduleRule?>(null)
     val activeSchedule: StateFlow<ScheduleRule?> = _activeSchedule.asStateFlow()
 
+    private val _activeRemainingMinutes = MutableStateFlow<Int?>(null)
+    val activeRemainingMinutes: StateFlow<Int?> = _activeRemainingMinutes.asStateFlow()
+
     private val _upcomingSchedule = MutableStateFlow<Pair<ScheduleRule, Int>?>(null)
     val upcomingSchedule: StateFlow<Pair<ScheduleRule, Int>?> = _upcomingSchedule.asStateFlow()
 
@@ -37,12 +46,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _pausedUntilMillis = MutableStateFlow<Long?>(null)
     val pausedUntilMillis: StateFlow<Long?> = _pausedUntilMillis.asStateFlow()
 
+    private val _quickMuteUntilMillis = MutableStateFlow<Long?>(null)
+    val quickMuteUntilMillis: StateFlow<Long?> = _quickMuteUntilMillis.asStateFlow()
+
+    private val _quickMuteRemainingSeconds = MutableStateFlow<Int>(0)
+    val quickMuteRemainingSeconds: StateFlow<Int> = _quickMuteRemainingSeconds.asStateFlow()
+
+    private val _quickMuteConflictInfo = MutableStateFlow<QuickMuteConflict?>(null)
+    val quickMuteConflictInfo: StateFlow<QuickMuteConflict?> = _quickMuteConflictInfo.asStateFlow()
+
     init {
-        // Real-time ticker to evaluate active schedule and pause eligibility every 3 seconds
+        // Real-time ticker to evaluate status every 2 seconds
         viewModelScope.launch {
             while (isActive) {
                 evaluateStatus()
-                delay(3000)
+                delay(2000)
             }
         }
     }
@@ -53,7 +71,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val currentDay = now.get(Calendar.DAY_OF_WEEK)
         val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
 
-        // 1. Check if any rule is currently active
+        // 1. Check active schedule and calculate remaining minutes
         val active = allSchedules.firstOrNull { rule ->
             if (!rule.daysOfWeek.contains(currentDay)) return@firstOrNull false
             val startMin = rule.startHour * 60 + rule.startMinute
@@ -66,6 +84,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         _activeSchedule.value = active
+
+        if (active != null) {
+            val startMin = active.startHour * 60 + active.startMinute
+            val endMin = active.endHour * 60 + active.endMinute
+            val remaining = if (startMin < endMin) {
+                (endMin - curMinutes).coerceAtLeast(1)
+            } else {
+                val rem = (endMin + 1440 - curMinutes) % 1440
+                rem.coerceAtLeast(1)
+            }
+            _activeRemainingMinutes.value = remaining
+        } else {
+            _activeRemainingMinutes.value = null
+        }
 
         // 2. Check for upcoming schedule starting today
         var nearestUpcoming: Pair<ScheduleRule, Int>? = null
@@ -97,10 +129,100 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+
+        // 5. Check Quick Mute countdown
+        val qmUntil = _quickMuteUntilMillis.value
+        if (qmUntil != null) {
+            val diffMillis = qmUntil - System.currentTimeMillis()
+            if (diffMillis <= 0) {
+                _quickMuteUntilMillis.value = null
+                _quickMuteRemainingSeconds.value = 0
+                // Restore sound mode
+                if (active != null) {
+                    try {
+                        audioManager.ringerMode = active.targetMode.ringerMode
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                } else {
+                    try {
+                        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } else {
+                _quickMuteRemainingSeconds.value = (diffMillis / 1000L).toInt()
+            }
+        } else {
+            _quickMuteRemainingSeconds.value = 0
+        }
+    }
+
+    fun requestQuickMute(minutes: Int) {
+        val active = _activeSchedule.value
+        val isAlreadyVibrating = audioManager.ringerMode == AudioManager.RINGER_MODE_VIBRATE || audioManager.ringerMode == AudioManager.RINGER_MODE_SILENT
+
+        if (active != null) {
+            val remMin = _activeRemainingMinutes.value ?: 0
+            val remStr = if (remMin >= 60) "${remMin / 60}h ${remMin % 60}m" else "${remMin}m"
+            _quickMuteConflictInfo.value = QuickMuteConflict(
+                title = "Schedule Already Active",
+                message = "'${active.title}' is already active with $remStr remaining (ends at ${active.formatEndTime()}).",
+                pendingMinutes = minutes
+            )
+        } else if (isAlreadyVibrating) {
+            val currentModeName = if (audioManager.ringerMode == AudioManager.RINGER_MODE_VIBRATE) "Vibrate" else "Silent"
+            _quickMuteConflictInfo.value = QuickMuteConflict(
+                title = "Phone Already in $currentModeName",
+                message = "Your phone is already in $currentModeName mode. Quick Mute will set a timer to restore ring in $minutes minutes.",
+                pendingMinutes = minutes
+            )
+        } else {
+            applyQuickMute(minutes)
+        }
+    }
+
+    fun confirmQuickMuteOverride() {
+        val pending = _quickMuteConflictInfo.value?.pendingMinutes ?: return
+        _quickMuteConflictInfo.value = null
+        applyQuickMute(pending)
+    }
+
+    fun dismissQuickMuteConflict() {
+        _quickMuteConflictInfo.value = null
+    }
+
+    private fun applyQuickMute(minutes: Int) {
+        val endMillis = System.currentTimeMillis() + (minutes * 60 * 1000L)
+        _quickMuteUntilMillis.value = endMillis
+        _quickMuteRemainingSeconds.value = minutes * 60
+
+        try {
+            audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+            scheduler.scheduleQuickMute(minutes)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun cancelQuickMute() {
+        _quickMuteUntilMillis.value = null
+        _quickMuteRemainingSeconds.value = 0
+
+        val active = _activeSchedule.value
+        try {
+            if (active != null) {
+                audioManager.ringerMode = active.targetMode.ringerMode
+            } else {
+                audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun pauseUntilNextOClock() {
-        val now = Calendar.getInstance()
         val nextHour = Calendar.getInstance().apply {
             add(Calendar.HOUR_OF_DAY, 1)
             set(Calendar.MINUTE, 0)
@@ -178,17 +300,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             repository.deleteSchedule(ruleId)
             evaluateStatus()
-        }
-    }
-
-    fun startQuickMute(minutes: Int) {
-        viewModelScope.launch {
-            try {
-                audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
-                scheduler.scheduleQuickMute(minutes)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
         }
     }
 }

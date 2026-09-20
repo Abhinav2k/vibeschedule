@@ -1,6 +1,11 @@
 package com.vibeschedule.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,15 +20,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,9 +47,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.ui.MainViewModel
+import com.vibeschedule.app.ui.QuickMuteConflict
 import com.vibeschedule.app.ui.components.GlassCard
 import com.vibeschedule.app.ui.components.PermissionBanner
 import com.vibeschedule.app.ui.components.ScheduleCard
+import com.vibeschedule.app.ui.theme.AccentAmber
 import com.vibeschedule.app.ui.theme.AccentTeal
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
@@ -53,6 +65,9 @@ fun SchedulesScreen(
 ) {
     val context = LocalContext.current
     val schedules by viewModel.schedules.collectAsState()
+    val conflictInfo by viewModel.quickMuteConflictInfo.collectAsState()
+    val quickMuteUntilMillis by viewModel.quickMuteUntilMillis.collectAsState()
+    val quickMuteRemainingSec by viewModel.quickMuteRemainingSeconds.collectAsState()
 
     Column(
         modifier = modifier.fillMaxSize()
@@ -60,16 +75,35 @@ fun SchedulesScreen(
         // Permission Banner (if needed)
         PermissionBanner()
 
+        // Conflict Info Card (When Quick Mute clicked while already active or vibrating)
+        AnimatedVisibility(
+            visible = conflictInfo != null,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            if (conflictInfo != null) {
+                QuickMuteConflictCard(
+                    conflict = conflictInfo!!,
+                    onKeep = { viewModel.dismissQuickMuteConflict() },
+                    onOverride = { viewModel.confirmQuickMuteOverride() },
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+            }
+        }
+
         // Quick Mute Glass Bar
         QuickMuteSection(
+            activeRemainingSeconds = if (quickMuteUntilMillis != null) quickMuteRemainingSec else null,
             onQuickMute = { minutes ->
-                viewModel.startQuickMute(minutes)
-                Toast.makeText(context, "Muted for $minutes min", Toast.LENGTH_SHORT).show()
+                viewModel.requestQuickMute(minutes)
+            },
+            onCancelQuickMute = {
+                viewModel.cancelQuickMute()
             },
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Schedule List
         if (schedules.isEmpty()) {
@@ -97,8 +131,74 @@ fun SchedulesScreen(
 }
 
 @Composable
+private fun QuickMuteConflictCard(
+    conflict: QuickMuteConflict,
+    onKeep: () -> Unit,
+    onOverride: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        backgroundColor = Color(0x22FF9F0A)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = AccentAmber,
+                modifier = Modifier.size(20.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = conflict.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = conflict.message,
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = onKeep,
+                        shape = CircleShape
+                    ) {
+                        Text("Keep Current", color = TextSecondary, fontSize = 12.sp)
+                    }
+
+                    Button(
+                        onClick = onOverride,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentAmber,
+                            contentColor = Color.Black
+                        ),
+                        shape = CircleShape
+                    ) {
+                        Text("Override (${conflict.pendingMinutes}m)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun QuickMuteSection(
+    activeRemainingSeconds: Int?,
     onQuickMute: (Int) -> Unit,
+    onCancelQuickMute: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     GlassCard(
@@ -107,22 +207,54 @@ private fun QuickMuteSection(
         backgroundColor = Color(0x10FFFFFF)
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(
-                imageVector = Icons.Default.Timer,
-                contentDescription = null,
-                tint = AccentTeal,
-                modifier = Modifier.size(15.dp)
-            )
-            Text(
-                text = "Quick Mute",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextSecondary,
-                letterSpacing = 0.5.sp
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Timer,
+                    contentDescription = null,
+                    tint = AccentTeal,
+                    modifier = Modifier.size(15.dp)
+                )
+                Text(
+                    text = "Quick Mute",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextSecondary,
+                    letterSpacing = 0.5.sp
+                )
+            }
+
+            if (activeRemainingSeconds != null && activeRemainingSeconds > 0) {
+                val min = activeRemainingSeconds / 60
+                val sec = activeRemainingSeconds % 60
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "${min}m ${sec}s left",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AccentTeal
+                    )
+                    Text(
+                        text = "Cancel",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextSecondary,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable { onCancelQuickMute() }
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))

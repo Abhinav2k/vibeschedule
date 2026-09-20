@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,6 +41,7 @@ import com.vibeschedule.app.ui.components.GlassCard
 import com.vibeschedule.app.ui.components.GlowingIndicator
 import com.vibeschedule.app.ui.theme.AccentAmber
 import com.vibeschedule.app.ui.theme.AccentPurple
+import com.vibeschedule.app.ui.theme.AccentRed
 import com.vibeschedule.app.ui.theme.AccentTeal
 import com.vibeschedule.app.ui.theme.ActiveScheduleBorderBrush
 import com.vibeschedule.app.ui.theme.GlassBorderBrush
@@ -55,11 +59,15 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val activeSchedule by viewModel.activeSchedule.collectAsState()
+    val activeRemainingMin by viewModel.activeRemainingMinutes.collectAsState()
     val upcomingSchedule by viewModel.upcomingSchedule.collectAsState()
     val isPauseEligible by viewModel.isPauseEligible.collectAsState()
     val pausedUntilMillis by viewModel.pausedUntilMillis.collectAsState()
+    val quickMuteUntilMillis by viewModel.quickMuteUntilMillis.collectAsState()
+    val quickMuteRemainingSec by viewModel.quickMuteRemainingSeconds.collectAsState()
 
     val isPaused = pausedUntilMillis != null
+    val isQuickMuteActive = quickMuteUntilMillis != null
 
     Column(
         modifier = modifier
@@ -69,7 +77,93 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // 1. Primary Status Card (Dynamic Hero)
+        // 1. Quick Mute Active Card (If Quick Mute is running)
+        if (isQuickMuteActive) {
+            val qmMinutes = quickMuteRemainingSec / 60
+            val qmSeconds = quickMuteRemainingSec % 60
+            val qmTimeStr = String.format(Locale.getDefault(), "%02d:%02d", qmMinutes, qmSeconds)
+            val endClockStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(quickMuteUntilMillis!!))
+
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(26.dp),
+                backgroundColor = Color(0x2210B981),
+                borderBrush = ActiveScheduleBorderBrush
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Timer,
+                            contentDescription = null,
+                            tint = AccentTeal,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "QUICK MUTE ACTIVE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = AccentTeal
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { viewModel.cancelQuickMute() },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cancel Quick Mute",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = qmTimeStr,
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            letterSpacing = (-1).sp
+                        )
+                        Text(
+                            text = "Ends at $endClockStr",
+                            fontSize = 13.sp,
+                            color = TextSecondary
+                        )
+                    }
+
+                    Button(
+                        onClick = { viewModel.cancelQuickMute() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0x25FFFFFF),
+                            contentColor = TextPrimary
+                        ),
+                        shape = CircleShape
+                    ) {
+                        Text("Cancel", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+        }
+
+        // 2. Primary Status Card (Dynamic Hero)
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
@@ -90,11 +184,11 @@ fun HomeScreen(
                     Text(
                         text = when {
                             isPaused -> "PAUSED"
-                            activeSchedule != null -> "ACTIVE"
+                            activeSchedule != null -> "ACTIVE SCHEDULE"
                             upcomingSchedule != null && upcomingSchedule!!.second <= 20 -> "UPCOMING"
                             else -> "STANDBY"
                         },
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
                         color = when {
@@ -124,9 +218,9 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Body: Title & Time
+            // Body: Title & Remaining Time in Active Schedule
             if (activeSchedule != null) {
                 Text(
                     text = activeSchedule!!.title,
@@ -136,10 +230,14 @@ fun HomeScreen(
                     letterSpacing = (-0.5).sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+
+                val remMin = activeRemainingMin ?: 0
+                val remStr = if (remMin >= 60) "${remMin / 60}h ${remMin % 60}m" else "${remMin}m"
+
                 Text(
-                    text = "${activeSchedule!!.formatStartTime()} — ${activeSchedule!!.formatEndTime()}",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Medium,
+                    text = "$remStr remaining  •  ends ${activeSchedule!!.formatEndTime()}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = AccentPurple
                 )
             } else if (upcomingSchedule != null) {
@@ -177,7 +275,7 @@ fun HomeScreen(
             }
         }
 
-        // 2. Pause Action Card (Ultra-minimal)
+        // 3. Pause Action Card (Ultra-minimal)
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
