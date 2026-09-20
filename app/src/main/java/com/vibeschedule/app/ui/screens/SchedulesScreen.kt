@@ -92,6 +92,7 @@ fun Modifier.bounceClickSched(onClick: () -> Unit): Modifier {
         }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SchedulesScreen(
     viewModel: MainViewModel,
@@ -151,7 +152,7 @@ fun SchedulesScreen(
                 items(schedules, key = { it.id }) { rule ->
                     ScheduleCard(
                         rule = rule,
-                        modifier = Modifier.animateItem(),
+                        modifier = Modifier.animateItemPlacement(),
                         onToggle = { isEnabled ->
                             viewModel.toggleSchedule(rule.id, isEnabled)
                         },
