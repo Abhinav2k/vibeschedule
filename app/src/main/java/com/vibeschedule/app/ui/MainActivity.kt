@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.ui.components.AddEditScheduleDialog
+import com.vibeschedule.app.ui.components.EasterEggAppIcon
+import com.vibeschedule.app.ui.components.EasterEggExpandedOverlay
 import com.vibeschedule.app.ui.components.LiquidTabSwitcher
 import com.vibeschedule.app.ui.screens.HomeScreen
 import com.vibeschedule.app.ui.screens.SchedulesScreen
@@ -106,6 +108,9 @@ fun MainAppScreen(viewModel: MainViewModel) {
     var showDialog by remember { mutableStateOf(false) }
     var editingRule by remember { mutableStateOf<ScheduleRule?>(null) }
 
+    var isSpearUnlocked by remember { mutableStateOf(false) }
+    var isSpearExpanded by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -114,30 +119,20 @@ fun MainAppScreen(viewModel: MainViewModel) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                // Minimal Top Bar: Icon at Left, Liquid Tab Switcher at Center
+                // Minimal Top Bar: Easter Egg Icon at Left, Liquid Tab Switcher at Center
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    // Left Icon
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color(0x18FFFFFF))
-                            .border(1.dp, GlassBorderBrush, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Vibration,
-                            contentDescription = "VibeSchedule",
-                            tint = AccentPurple,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                    // Left Icon with 5x Double-Tap Easter Egg
+                    EasterEggAppIcon(
+                        isSpearUnlocked = isSpearUnlocked,
+                        onUnlockSpear = { isSpearUnlocked = true },
+                        onExpandModal = { isSpearExpanded = true },
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    )
 
                     // Center Liquid Tab Switcher
                     LiquidTabSwitcher(
@@ -228,5 +223,11 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 }
             )
         }
+
+        // Easter Egg Expanded Powerhouse Overlay
+        EasterEggExpandedOverlay(
+            visible = isSpearExpanded,
+            onDismiss = { isSpearExpanded = false }
+        )
     }
 }
