@@ -6,7 +6,10 @@
     android:baselineAligned="false"
     android:gravity="center"
     android:orientation="horizontal"
-    android:padding="3dp">
+    android:paddingStart="0dp"
+    android:paddingEnd="0dp"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
 
     <!-- Big Button 1: Skip This Period (Square with rounded edges) -->
     <FrameLayout
@@ -14,7 +17,8 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:layout_marginEnd="4dp"
+        android:layout_marginStart="0dp"
+        android:layout_marginEnd="5dp"
         android:background="@drawable/widget_btn_skip_minimal"
         android:clickable="true"
         android:focusable="true">
@@ -34,7 +38,8 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:layout_marginStart="4dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginEnd="0dp"
         android:background="@drawable/widget_btn_cancel_minimal"
         android:clickable="true"
         android:focusable="true">
