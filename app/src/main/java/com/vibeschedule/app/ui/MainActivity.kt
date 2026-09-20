@@ -11,8 +11,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -97,6 +101,7 @@ class MainActivity : ComponentActivity() {
 fun MainAppScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Home, 1 = Schedules
+    var previousTab by remember { mutableIntStateOf(0) }
 
     var showDialog by remember { mutableStateOf(false) }
     var editingRule by remember { mutableStateOf<ScheduleRule?>(null) }
@@ -137,7 +142,10 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     // Center Liquid Tab Switcher
                     LiquidTabSwitcher(
                         selectedTab = selectedTab,
-                        onTabSelected = { selectedTab = it },
+                        onTabSelected = {
+                            previousTab = selectedTab
+                            selectedTab = it
+                        },
                         tabs = listOf("Home", "Schedules"),
                         modifier = Modifier.align(Alignment.Center)
                     )
@@ -166,13 +174,31 @@ fun MainAppScreen(viewModel: MainViewModel) {
             ) {
                 AnimatedContent(
                     targetState = selectedTab,
-                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    transitionSpec = {
+                        val goingRight = targetState > previousTab
+                        val enterSlide = slideInHorizontally(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ) { if (goingRight) it else -it } + fadeIn()
+                        val exitSlide = slideOutHorizontally(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ) { if (goingRight) -it else it } + fadeOut()
+                        enterSlide togetherWith exitSlide
+                    },
                     label = "tabTransition"
                 ) { target ->
                     when (target) {
                         0 -> HomeScreen(
                             viewModel = viewModel,
-                            onNavigateToSchedules = { selectedTab = 1 }
+                            onNavigateToSchedules = {
+                                previousTab = selectedTab
+                                selectedTab = 1
+                            }
                         )
                         1 -> SchedulesScreen(
                             viewModel = viewModel,

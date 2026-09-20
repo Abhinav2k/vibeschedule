@@ -56,6 +56,20 @@
             </intent-filter>
         </receiver>
 
+        <!-- Homescreen Widget (2x1) -->
+        <receiver
+            android:name=".widget.VibeWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.vibeschedule.app.ACTION_WIDGET_CANCEL_ACTIVE" />
+                <action android:name="com.vibeschedule.app.ACTION_WIDGET_SKIP_PERIOD" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vibe_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>

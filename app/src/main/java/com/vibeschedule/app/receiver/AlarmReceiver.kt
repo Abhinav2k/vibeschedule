@@ -15,6 +15,7 @@ import com.vibeschedule.app.data.ScheduleRepository
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
+import com.vibeschedule.app.widget.VibeWidgetProvider
 import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -38,6 +39,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 repo.getScheduleById(ruleId)?.let { rule ->
                     AlarmScheduler(context).scheduleRule(rule)
                 }
+                VibeWidgetProvider.updateAll(context)
             }
 
             ACTION_SCHEDULE_END -> {
@@ -52,6 +54,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 repo.getScheduleById(ruleId)?.let { rule ->
                     AlarmScheduler(context).scheduleRule(rule)
                 }
+                VibeWidgetProvider.updateAll(context)
             }
 
             ACTION_QUICK_MUTE_END -> {
@@ -70,6 +73,7 @@ class AlarmReceiver : BroadcastReceiver() {
                     applySoundMode(context, audioManager, notificationManager, SoundMode.NORMAL)
                     cancelStatusNotification(notificationManager)
                 }
+                VibeWidgetProvider.updateAll(context)
             }
         }
     }

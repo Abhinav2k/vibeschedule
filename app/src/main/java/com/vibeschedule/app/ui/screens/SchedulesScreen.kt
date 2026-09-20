@@ -2,6 +2,9 @@ package com.vibeschedule.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,6 +12,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,10 +41,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,6 +65,32 @@ import com.vibeschedule.app.ui.theme.AccentTeal
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
 import com.vibeschedule.app.ui.theme.TextTertiary
+
+/** Spring-bounce scale on press — 0.94f down, springs back on release */
+@Composable
+fun Modifier.bounceClickSched(onClick: () -> Unit): Modifier {
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "schedBounce"
+    )
+    return this
+        .scale(scale)
+        .pointerInput(onClick) {
+            detectTapGestures(
+                onPress = {
+                    pressed = true
+                    tryAwaitRelease()
+                    pressed = false
+                    onClick()
+                }
+            )
+        }
+}
 
 @Composable
 fun SchedulesScreen(
@@ -116,6 +151,7 @@ fun SchedulesScreen(
                 items(schedules, key = { it.id }) { rule ->
                     ScheduleCard(
                         rule = rule,
+                        modifier = Modifier.animateItem(),
                         onToggle = { isEnabled ->
                             viewModel.toggleSchedule(rule.id, isEnabled)
                         },
@@ -270,7 +306,7 @@ private fun QuickMuteSection(
                         .clip(CircleShape)
                         .background(Color(0x18FFFFFF))
                         .border(0.5.dp, Color(0x1AFFFFFF), CircleShape)
-                        .clickable { onQuickMute(min) }
+                        .bounceClickSched { onQuickMute(min) }
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {

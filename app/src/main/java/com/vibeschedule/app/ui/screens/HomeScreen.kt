@@ -1,7 +1,17 @@
 package com.vibeschedule.app.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,10 +39,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,6 +66,32 @@ import com.vibeschedule.app.ui.theme.TextTertiary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/** Applies a spring-bounce scale on press — 0.94f down, spring back to 1f on release */
+@Composable
+fun Modifier.bounceClick(onClick: () -> Unit): Modifier {
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "bounceScale"
+    )
+    return this
+        .scale(scale)
+        .pointerInput(onClick) {
+            detectTapGestures(
+                onPress = {
+                    pressed = true
+                    tryAwaitRelease()
+                    pressed = false
+                    onClick()
+                }
+            )
+        }
+}
 
 @Composable
 fun HomeScreen(
@@ -77,12 +118,23 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // 1. Quick Mute Active Card (If Quick Mute is running)
-        if (isQuickMuteActive) {
+        // 1. Quick Mute Active Card (Animated in/out)
+        AnimatedVisibility(
+            visible = isQuickMuteActive,
+            enter = expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) + fadeIn(animationSpec = tween(200)),
+            exit = shrinkVertically(animationSpec = tween(250)) + fadeOut(animationSpec = tween(200))
+        ) {
             val qmMinutes = quickMuteRemainingSec / 60
             val qmSeconds = quickMuteRemainingSec % 60
             val qmTimeStr = String.format(Locale.getDefault(), "%02d:%02d", qmMinutes, qmSeconds)
-            val endClockStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(quickMuteUntilMillis!!))
+            val endClockStr = if (quickMuteUntilMillis != null)
+                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(quickMuteUntilMillis!!))
+            else ""
 
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -150,7 +202,8 @@ fun HomeScreen(
                     }
 
                     Button(
-                        onClick = { viewModel.cancelQuickMute() },
+                        onClick = { },
+                        modifier = Modifier.bounceClick { viewModel.cancelQuickMute() },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0x25FFFFFF),
                             contentColor = TextPrimary
@@ -316,7 +369,8 @@ fun HomeScreen(
 
                 if (isPaused) {
                     Button(
-                        onClick = { viewModel.cancelPause() },
+                        onClick = { },
+                        modifier = Modifier.bounceClick { viewModel.cancelPause() },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AccentAmber,
                             contentColor = Color.Black
@@ -329,8 +383,9 @@ fun HomeScreen(
                     }
                 } else {
                     Button(
-                        onClick = { viewModel.pauseUntilNextOClock() },
+                        onClick = { },
                         enabled = isPauseEligible,
+                        modifier = if (isPauseEligible) Modifier.bounceClick { viewModel.pauseUntilNextOClock() } else Modifier,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AccentPurple,
                             disabledContainerColor = Color(0x14FFFFFF),
