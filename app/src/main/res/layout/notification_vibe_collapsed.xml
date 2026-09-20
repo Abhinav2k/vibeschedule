@@ -5,51 +5,77 @@
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="6dp"
-    android:paddingEnd="4dp"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="10dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
-    <!-- Left side: Information and Progress Bar -->
+    <!-- Left side: Mode Tag, Title, Time, and Shortened Progress Bar -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:gravity="center_vertical"
         android:orientation="vertical"
         android:paddingEnd="10dp">
 
-        <TextView
-            android:id="@+id/notif_title"
+        <!-- Top Header: Badge + Title -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
+            <TextView
+                android:id="@+id/notif_mode_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/notif_badge_bg"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="1.5dp"
+                android:paddingBottom="1.5dp"
+                android:text="VIBRATE"
+                android:textColor="#FF818CF8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/notif_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Subtitle: Time Remaining & End Time -->
         <TextView
             android:id="@+id/notif_time_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="3dp"
             android:textAppearance="@style/TextAppearance.Compat.Notification.Line2"
             android:textSize="12sp"
             android:maxLines="1"
             android:ellipsize="end" />
 
+        <!-- Shortened Progress Bar (sleek status indicator) -->
         <ProgressBar
             android:id="@+id/notif_progress"
             style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="5dp"
+            android:layout_width="120dp"
+            android:layout_height="4dp"
             android:layout_marginTop="6dp"
             android:max="100"
             android:progress="0"
             android:progressDrawable="@drawable/notif_progress_drawable" />
     </LinearLayout>
 
-    <!-- Right side: Widget-Style Control Buttons (visible without expanding!) -->
+    <!-- Right side: Generous, Prominent Control Buttons (Directly clickable!) -->
     <LinearLayout
         android:id="@+id/notif_actions_container"
         android:layout_width="wrap_content"
@@ -57,37 +83,37 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <!-- Button 1: Skip to :00 (Porcelain White, dark icon) -->
+        <!-- Button 1: Skip to :00 (Porcelain White, dark icon - 46dp x 46dp) -->
         <FrameLayout
             android:id="@+id/notif_btn_skip"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
             android:layout_marginEnd="8dp"
             android:background="@drawable/widget_btn_skip_minimal"
             android:clickable="true"
             android:focusable="true">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:layout_gravity="center"
                 android:contentDescription="Skip This Period"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_widget_skip" />
         </FrameLayout>
 
-        <!-- Button 2: Stop / Cancel (Obsidian Black, light icon) -->
+        <!-- Button 2: Stop / Cancel (Obsidian Black, light icon - 46dp x 46dp) -->
         <FrameLayout
             android:id="@+id/notif_btn_cancel"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
             android:background="@drawable/widget_btn_cancel_minimal"
             android:clickable="true"
             android:focusable="true">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:layout_gravity="center"
                 android:contentDescription="Cancel Schedule"
                 android:scaleType="fitCenter"

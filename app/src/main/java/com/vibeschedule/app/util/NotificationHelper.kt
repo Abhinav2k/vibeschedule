@@ -136,6 +136,7 @@ object NotificationHelper {
         val collapsedView = RemoteViews(context.packageName, R.layout.notification_vibe_collapsed).apply {
             setTextViewText(R.id.notif_title, title)
             setTextViewText(R.id.notif_time_text, timeContent)
+            setTextViewText(R.id.notif_mode_badge, targetMode.displayName.uppercase(Locale.getDefault()))
 
             if (remainingMinutes != null && totalMinutes != null && totalMinutes > 0) {
                 val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
