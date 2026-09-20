@@ -1,9 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <corners android:radius="24dp" />
-    <solid android:color="#D90D0E15" />
-    <stroke
-        android:width="1dp"
-        android:color="#33FFFFFF" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base obsidian liquid glass body -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#E6151722"
+                android:centerColor="#D90D0E15"
+                android:endColor="#E608090E" />
+            <stroke
+                android:width="1dp"
+                android:color="#38FFFFFF" />
+        </shape>
+    </item>
+    <!-- Top specular glass highlight gleam -->
+    <item
+        android:left="1dp"
+        android:right="1dp"
+        android:top="1dp"
+        android:bottom="16dp">
+        <shape android:shape="rectangle">
+            <corners
+                android:topLeftRadius="23dp"
+                android:topRightRadius="23dp"
+                android:bottomLeftRadius="0dp"
+                android:bottomRightRadius="0dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#1EFFFFFF"
+                android:endColor="#00FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

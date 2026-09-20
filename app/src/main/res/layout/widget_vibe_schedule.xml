@@ -4,81 +4,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_glass_bg"
-    android:gravity="center_vertical"
+    android:baselineAligned="false"
+    android:gravity="center"
     android:orientation="horizontal"
-    android:paddingStart="14dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="12dp"
-    android:paddingBottom="8dp">
+    android:padding="6dp">
 
-    <!-- Left Status Section -->
-    <LinearLayout
+    <!-- Button 1: Skip for this period -->
+    <FrameLayout
+        android:id="@+id/btn_widget_skip"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_marginEnd="3dp"
+        android:background="@drawable/widget_btn_skip_glass"
+        android:clickable="true"
+        android:focusable="true">
 
         <ImageView
-            android:id="@+id/widget_status_icon"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:src="@drawable/ic_launcher_foreground" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/widget_status_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Vibe"
-                android:textColor="#FFFFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/widget_status_sub"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Standby"
-                android:textColor="#88FFFFFF"
-                android:textSize="10sp" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- Right Action Buttons (Cancel & Skip) -->
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <!-- Skip Period Button -->
-        <ImageButton
-            android:id="@+id/btn_widget_skip"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="6dp"
-            android:background="@drawable/widget_btn_glass"
-            android:contentDescription="Skip Period"
-            android:padding="9dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:contentDescription="Skip This Period"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_widget_skip" />
+    </FrameLayout>
 
-        <!-- Cancel Running Schedule Button -->
-        <ImageButton
-            android:id="@+id/btn_widget_cancel"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/widget_btn_glass"
+    <!-- Button 2: Cancel active schedule -->
+    <FrameLayout
+        android:id="@+id/btn_widget_cancel"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginStart="3dp"
+        android:background="@drawable/widget_btn_cancel_glass"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
             android:contentDescription="Cancel Schedule"
-            android:padding="9dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_widget_cancel" />
-    </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>
