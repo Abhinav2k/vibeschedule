@@ -15,6 +15,7 @@ import com.vibeschedule.app.data.ScheduleRepository
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
+import com.vibeschedule.app.util.NotificationHelper
 import com.vibeschedule.app.util.SoundModeHelper
 import java.util.Calendar
 
@@ -47,7 +48,7 @@ class VibeWidgetProvider : AppWidgetProvider() {
                 // Cancel running schedule / quick mute and restore Normal sound
                 try {
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
-                    notificationManager.cancel(8823) // dismiss status notification
+                    NotificationHelper.dismissNotification(context)
                     scheduler.cancelPauseEnd()
                     Toast.makeText(context, "Schedule Cancelled • Normal Ring", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
@@ -78,6 +79,13 @@ class VibeWidgetProvider : AppWidgetProvider() {
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     scheduler.schedulePauseEnd(nextHour.timeInMillis)
                     val label = activeRule?.title ?: startingSoonRule?.title ?: "Schedule"
+                    NotificationHelper.showActiveStatusNotification(
+                        context = context,
+                        title = "$label Paused",
+                        targetMode = SoundMode.NORMAL,
+                        endMillis = nextHour.timeInMillis,
+                        canSkip = false
+                    )
                     Toast.makeText(context, "Skipped $label until next :00", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     e.printStackTrace()

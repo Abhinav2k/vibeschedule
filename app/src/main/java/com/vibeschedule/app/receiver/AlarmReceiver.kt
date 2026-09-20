@@ -15,6 +15,7 @@ import com.vibeschedule.app.data.ScheduleRepository
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
+import com.vibeschedule.app.util.NotificationHelper
 import com.vibeschedule.app.util.SoundModeHelper
 import com.vibeschedule.app.widget.VibeWidgetProvider
 import java.util.Calendar
@@ -34,11 +35,19 @@ class AlarmReceiver : BroadcastReceiver() {
                 val targetMode = SoundMode.valueOf(targetModeStr)
 
                 SoundModeHelper.applySoundMode(context, targetMode, audioManager, notificationManager)
-                showStatusNotification(context, notificationManager, "VibeSchedule Active", "$ruleTitle: Switched to ${targetMode.displayName}")
 
                 val repo = ScheduleRepository(context)
-                repo.getScheduleById(ruleId)?.let { rule ->
+                val rule = repo.getScheduleById(ruleId)
+                if (rule != null) {
+                    NotificationHelper.showActiveRuleNotification(context, rule)
                     AlarmScheduler(context).scheduleRule(rule)
+                } else {
+                    NotificationHelper.showActiveStatusNotification(
+                        context = context,
+                        title = ruleTitle,
+                        targetMode = targetMode,
+                        canSkip = true
+                    )
                 }
                 VibeWidgetProvider.updateAll(context)
             }
@@ -49,15 +58,13 @@ class AlarmReceiver : BroadcastReceiver() {
                 val currentlyActive = findCurrentActiveRule(allSchedules)
 
                 if (currentlyActive != null && currentlyActive.isEnabled) {
-                    // Another overlapping schedule is still active! Maintain its target mode
                     SoundModeHelper.applySoundMode(context, currentlyActive.targetMode, audioManager, notificationManager)
-                    showStatusNotification(context, notificationManager, "VibeSchedule Active", "${currentlyActive.title}: Switched to ${currentlyActive.targetMode.displayName}")
+                    NotificationHelper.showActiveRuleNotification(context, currentlyActive)
                 } else {
-                    // Revert to normal mode (or specified revert mode) and ensure volume is audible
                     val revertModeStr = intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.NORMAL.name
                     val revertMode = try { SoundMode.valueOf(revertModeStr) } catch (e: Exception) { SoundMode.NORMAL }
                     SoundModeHelper.applySoundMode(context, revertMode, audioManager, notificationManager)
-                    cancelStatusNotification(notificationManager)
+                    NotificationHelper.dismissNotification(context)
                 }
 
                 val ruleId = intent.getStringExtra(EXTRA_RULE_ID)
@@ -71,19 +78,18 @@ class AlarmReceiver : BroadcastReceiver() {
 
             ACTION_QUICK_MUTE_END -> {
                 SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
-                cancelStatusNotification(notificationManager)
+                NotificationHelper.dismissNotification(context)
             }
 
             ACTION_PAUSE_END -> {
-                // Check if any rule is currently active right now
                 val repo = ScheduleRepository(context)
                 val activeRule = findCurrentActiveRule(repo.getAllSchedules())
                 if (activeRule != null && activeRule.isEnabled) {
                     SoundModeHelper.applySoundMode(context, activeRule.targetMode, audioManager, notificationManager)
-                    showStatusNotification(context, notificationManager, "Schedule Resumed", "${activeRule.title}: Switched to ${activeRule.targetMode.displayName}")
+                    NotificationHelper.showActiveRuleNotification(context, activeRule)
                 } else {
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
-                    cancelStatusNotification(notificationManager)
+                    NotificationHelper.dismissNotification(context)
                 }
                 VibeWidgetProvider.updateAll(context)
             }
@@ -106,57 +112,9 @@ class AlarmReceiver : BroadcastReceiver() {
             if (startMin < endMin) {
                 rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin
             } else {
-                // Overnight rule: active if started today evening, OR started yesterday evening and continuing this morning
                 (rule.daysOfWeek.contains(curDay) && curMinutes >= startMin) ||
                 (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
             }
-        }
-    }
-
-    private fun showStatusNotification(
-        context: Context,
-        notificationManager: NotificationManager,
-        title: String,
-        content: String
-    ) {
-        createNotificationChannel(context, notificationManager)
-
-        val revertIntent = Intent(context, QuickMuteReceiver::class.java).apply {
-            action = ACTION_REVERT_NOW
-        }
-        val revertPI = PendingIntent.getBroadcast(
-            context,
-            1001,
-            revertIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
-            .setContentTitle(title)
-            .setContentText(content)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .addAction(android.R.drawable.ic_menu_revert, "Revert to Normal", revertPI)
-            .build()
-
-        notificationManager.notify(NOTIFICATION_ID, notification)
-    }
-
-    private fun cancelStatusNotification(notificationManager: NotificationManager) {
-        notificationManager.cancel(NOTIFICATION_ID)
-    }
-
-    private fun createNotificationChannel(context: Context, notificationManager: NotificationManager) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                context.getString(R.string.channel_name),
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = context.getString(R.string.channel_description)
-            }
-            notificationManager.createNotificationChannel(channel)
         }
     }
 

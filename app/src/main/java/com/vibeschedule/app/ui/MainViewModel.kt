@@ -9,6 +9,7 @@ import com.vibeschedule.app.data.ScheduleRepository
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
+import com.vibeschedule.app.util.NotificationHelper
 import com.vibeschedule.app.util.SoundModeHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,6 +56,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _quickMuteConflictInfo = MutableStateFlow<QuickMuteConflict?>(null)
     val quickMuteConflictInfo: StateFlow<QuickMuteConflict?> = _quickMuteConflictInfo.asStateFlow()
+
+    private var lastNotificationMinute: Int = -1
 
     init {
         // Real-time ticker to evaluate status every 2 seconds
@@ -127,6 +130,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _pausedUntilMillis.value = null
             if (active != null) {
                 SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
+                NotificationHelper.showActiveRuleNotification(getApplication(), active)
+            } else {
+                NotificationHelper.dismissNotification(getApplication())
             }
         }
 
@@ -140,14 +146,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // Restore sound mode
                 if (active != null) {
                     SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
+                    NotificationHelper.showActiveRuleNotification(getApplication(), active)
                 } else {
                     SoundModeHelper.applySoundMode(getApplication(), SoundMode.NORMAL, audioManager)
+                    NotificationHelper.dismissNotification(getApplication())
                 }
             } else {
                 _quickMuteRemainingSeconds.value = (diffMillis / 1000L).toInt()
             }
         } else {
             _quickMuteRemainingSeconds.value = 0
+        }
+
+        // 6. Keep notification progress in sync while active
+        if (_pausedUntilMillis.value == null && _quickMuteUntilMillis.value == null && active != null) {
+            if (curMinutes != lastNotificationMinute) {
+                lastNotificationMinute = curMinutes
+                NotificationHelper.showActiveRuleNotification(getApplication(), active)
+            }
+        } else if (_quickMuteUntilMillis.value == null && _pausedUntilMillis.value == null && active == null) {
+            lastNotificationMinute = -1
         }
     }
 
@@ -193,6 +211,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         try {
             SoundModeHelper.applySoundMode(getApplication(), SoundMode.VIBRATE, audioManager)
             scheduler.scheduleQuickMute(minutes)
+            NotificationHelper.showActiveStatusNotification(
+                context = getApplication(),
+                title = "Quick Mute",
+                targetMode = SoundMode.VIBRATE,
+                remainingMinutes = minutes,
+                totalMinutes = minutes,
+                endMillis = endMillis,
+                canSkip = false
+            )
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -203,15 +230,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _quickMuteRemainingSeconds.value = 0
         scheduler.cancelQuickMute()
 
-        val notificationManager = getApplication<Application>().getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
-        notificationManager?.cancel(8823)
-
         val active = _activeSchedule.value
         try {
             if (active != null) {
                 SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
+                NotificationHelper.showActiveRuleNotification(getApplication(), active)
             } else {
                 SoundModeHelper.applySoundMode(getApplication(), SoundMode.NORMAL, audioManager)
+                NotificationHelper.dismissNotification(getApplication())
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -228,10 +254,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         val targetMillis = nextHour.timeInMillis
         _pausedUntilMillis.value = targetMillis
+        val active = _activeSchedule.value
+        val label = active?.title ?: "Schedule"
 
         try {
             SoundModeHelper.applySoundMode(getApplication(), SoundMode.NORMAL, audioManager)
             scheduler.schedulePauseEnd(targetMillis)
+            NotificationHelper.showActiveStatusNotification(
+                context = getApplication(),
+                title = "$label Paused",
+                targetMode = SoundMode.NORMAL,
+                endMillis = targetMillis,
+                canSkip = false
+            )
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -245,9 +280,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (active != null) {
             try {
                 SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
+                NotificationHelper.showActiveRuleNotification(getApplication(), active)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        } else {
+            NotificationHelper.dismissNotification(getApplication())
         }
     }
 
@@ -275,6 +313,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleSchedule(ruleId: String, isEnabled: Boolean) {
         viewModelScope.launch {
+            if (!isEnabled && _activeSchedule.value?.id == ruleId) {
+                NotificationHelper.dismissNotification(getApplication())
+            }
             repository.toggleSchedule(ruleId, isEnabled)
             val updated = repository.getScheduleById(ruleId)
             if (updated != null) {
@@ -290,6 +331,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteSchedule(ruleId: String) {
         viewModelScope.launch {
+            if (_activeSchedule.value?.id == ruleId) {
+                NotificationHelper.dismissNotification(getApplication())
+            }
             val rule = repository.getScheduleById(ruleId)
             if (rule != null) {
                 scheduler.cancelRule(rule)
