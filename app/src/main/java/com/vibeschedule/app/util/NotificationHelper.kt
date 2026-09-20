@@ -6,6 +6,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.view.View
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.vibeschedule.app.R
 import com.vibeschedule.app.model.ScheduleRule
@@ -18,7 +20,8 @@ import java.util.Date
 import java.util.Locale
 
 object NotificationHelper {
-    const val CHANNEL_ID = "vibe_schedule_channel"
+    const val CHANNEL_ID = "vibe_schedule_active_status_v4"
+    const val OLD_CHANNEL_ID = "vibe_schedule_channel"
     const val NOTIFICATION_ID = 8823
 
     /**
@@ -61,7 +64,7 @@ object NotificationHelper {
 
     /**
      * Displays a rich, lock-screen-visible status notification with an active progress bar
-     * and interactive [End Now] & [Skip to :00] action buttons.
+     * and interactive [End Now] & [Skip to :00] action buttons visible directly without expanding.
      */
     fun showActiveStatusNotification(
         context: Context,
@@ -86,7 +89,7 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Action 1: End Now / Revert to Normal
+        // Action 1: End Now / Revert to Normal (Cancel)
         val revertIntent = Intent(context, VibeWidgetProvider::class.java).apply {
             action = VibeWidgetProvider.ACTION_WIDGET_CANCEL_ACTIVE
         }
@@ -129,27 +132,78 @@ object NotificationHelper {
             SoundMode.NORMAL -> android.R.drawable.ic_dialog_info
         }
 
+        // 1. Collapsed View (always shows skip & stop widget buttons directly without expanding!)
+        val collapsedView = RemoteViews(context.packageName, R.layout.notification_vibe_collapsed).apply {
+            setTextViewText(R.id.notif_title, title)
+            setTextViewText(R.id.notif_time_text, timeContent)
+
+            if (remainingMinutes != null && totalMinutes != null && totalMinutes > 0) {
+                val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
+                setViewVisibility(R.id.notif_progress, View.VISIBLE)
+                setProgressBar(R.id.notif_progress, totalMinutes, elapsed, false)
+            } else {
+                setViewVisibility(R.id.notif_progress, View.GONE)
+            }
+
+            if (canSkip) {
+                setViewVisibility(R.id.notif_btn_skip, View.VISIBLE)
+                setOnClickPendingIntent(R.id.notif_btn_skip, skipPI)
+            } else {
+                setViewVisibility(R.id.notif_btn_skip, View.GONE)
+            }
+            setOnClickPendingIntent(R.id.notif_btn_cancel, revertPI)
+            setOnClickPendingIntent(R.id.notif_root, openAppPI)
+        }
+
+        // 2. Expanded View (shows larger widget-styled cards with text labels)
+        val expandedView = RemoteViews(context.packageName, R.layout.notification_vibe_expanded).apply {
+            setTextViewText(R.id.notif_expanded_title, title)
+            setTextViewText(R.id.notif_expanded_badge, targetMode.displayName.uppercase(Locale.getDefault()))
+            setTextViewText(R.id.notif_expanded_time_text, timeContent)
+
+            if (remainingMinutes != null && totalMinutes != null && totalMinutes > 0) {
+                val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
+                setViewVisibility(R.id.notif_expanded_progress, View.VISIBLE)
+                setProgressBar(R.id.notif_expanded_progress, totalMinutes, elapsed, false)
+            } else {
+                setViewVisibility(R.id.notif_expanded_progress, View.GONE)
+            }
+
+            if (canSkip) {
+                setViewVisibility(R.id.notif_expanded_btn_skip, View.VISIBLE)
+                setOnClickPendingIntent(R.id.notif_expanded_btn_skip, skipPI)
+            } else {
+                setViewVisibility(R.id.notif_expanded_btn_skip, View.GONE)
+            }
+            setOnClickPendingIntent(R.id.notif_expanded_btn_cancel, revertPI)
+            setOnClickPendingIntent(R.id.notif_expanded_root, openAppPI)
+        }
+
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(iconRes)
             .setContentTitle(title)
             .setContentText(timeContent)
             .setSubText(targetMode.displayName)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Lock screen full visibility!
+            .setCustomContentView(collapsedView)
+            .setCustomBigContentView(expandedView)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setPriority(NotificationCompat.PRIORITY_MAX) // Top priority
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Always visible on lock screen
+            .setCategory(NotificationCompat.CATEGORY_ALARM) // Alarm category ensures lockscreen presence
             .setOngoing(true)
             .setShowWhen(false)
+            .setSilent(true) // Silent: no audio beeps when progress updates
+            .setOnlyAlertOnce(true)
             .setContentIntent(openAppPI)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "End Now", revertPI)
+            .addAction(R.drawable.ic_widget_cancel, "End Now", revertPI)
 
         if (canSkip) {
-            builder.addAction(android.R.drawable.ic_media_next, "Skip to :00", skipPI)
+            builder.addAction(R.drawable.ic_widget_skip, "Skip to :00", skipPI)
         }
 
-        // Add native progress bar if total & remaining are known
-        if (remainingMinutes != null && totalMinutes != null && totalMinutes > 0) {
-            val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
-            builder.setProgress(totalMinutes, elapsed, false)
-        }
+        // Set public version so secure lock screen renders the same interactive layout
+        val builtNotification = builder.build()
+        builder.setPublicVersion(builtNotification)
 
         notificationManager.notify(NOTIFICATION_ID, builder.build())
     }
@@ -161,13 +215,25 @@ object NotificationHelper {
 
     private fun createNotificationChannel(context: Context, notificationManager: NotificationManager) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Delete previous lower-importance channels so system replaces them with high-importance
+            try {
+                notificationManager.deleteNotificationChannel(OLD_CHANNEL_ID)
+                notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v2")
+                notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v3")
+            } catch (e: Exception) {
+                // Ignore
+            }
+
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 context.getString(R.string.channel_name),
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH // High importance ensures it shows even when non-important ones are hidden
             ).apply {
                 description = context.getString(R.string.channel_description)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                setSound(null, null) // Silent: do not ring
+                enableVibration(false) // Silent: do not buzz
+                setShowBadge(false)
             }
             notificationManager.createNotificationChannel(channel)
         }
