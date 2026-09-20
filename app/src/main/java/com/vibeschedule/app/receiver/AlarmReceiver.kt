@@ -15,6 +15,7 @@ import com.vibeschedule.app.data.ScheduleRepository
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
+import com.vibeschedule.app.util.SoundModeHelper
 import com.vibeschedule.app.widget.VibeWidgetProvider
 import java.util.Calendar
 
@@ -32,7 +33,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 val targetModeStr = intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.VIBRATE.name
                 val targetMode = SoundMode.valueOf(targetModeStr)
 
-                applySoundMode(context, audioManager, notificationManager, targetMode)
+                SoundModeHelper.applySoundMode(context, targetMode, audioManager, notificationManager)
                 showStatusNotification(context, notificationManager, "VibeSchedule Active", "$ruleTitle: Switched to ${targetMode.displayName}")
 
                 val repo = ScheduleRepository(context)
@@ -43,22 +44,33 @@ class AlarmReceiver : BroadcastReceiver() {
             }
 
             ACTION_SCHEDULE_END -> {
-                val ruleId = intent.getStringExtra(EXTRA_RULE_ID) ?: return
-                val revertModeStr = intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.NORMAL.name
-                val revertMode = SoundMode.valueOf(revertModeStr)
-
-                applySoundMode(context, audioManager, notificationManager, revertMode)
-                cancelStatusNotification(notificationManager)
-
                 val repo = ScheduleRepository(context)
-                repo.getScheduleById(ruleId)?.let { rule ->
-                    AlarmScheduler(context).scheduleRule(rule)
+                val allSchedules = repo.getAllSchedules()
+                val currentlyActive = findCurrentActiveRule(allSchedules)
+
+                if (currentlyActive != null && currentlyActive.isEnabled) {
+                    // Another overlapping schedule is still active! Maintain its target mode
+                    SoundModeHelper.applySoundMode(context, currentlyActive.targetMode, audioManager, notificationManager)
+                    showStatusNotification(context, notificationManager, "VibeSchedule Active", "${currentlyActive.title}: Switched to ${currentlyActive.targetMode.displayName}")
+                } else {
+                    // Revert to normal mode (or specified revert mode) and ensure volume is audible
+                    val revertModeStr = intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.NORMAL.name
+                    val revertMode = try { SoundMode.valueOf(revertModeStr) } catch (e: Exception) { SoundMode.NORMAL }
+                    SoundModeHelper.applySoundMode(context, revertMode, audioManager, notificationManager)
+                    cancelStatusNotification(notificationManager)
+                }
+
+                val ruleId = intent.getStringExtra(EXTRA_RULE_ID)
+                if (ruleId != null) {
+                    repo.getScheduleById(ruleId)?.let { rule ->
+                        AlarmScheduler(context).scheduleRule(rule)
+                    }
                 }
                 VibeWidgetProvider.updateAll(context)
             }
 
             ACTION_QUICK_MUTE_END -> {
-                applySoundMode(context, audioManager, notificationManager, SoundMode.NORMAL)
+                SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                 cancelStatusNotification(notificationManager)
             }
 
@@ -67,10 +79,10 @@ class AlarmReceiver : BroadcastReceiver() {
                 val repo = ScheduleRepository(context)
                 val activeRule = findCurrentActiveRule(repo.getAllSchedules())
                 if (activeRule != null && activeRule.isEnabled) {
-                    applySoundMode(context, audioManager, notificationManager, activeRule.targetMode)
+                    SoundModeHelper.applySoundMode(context, activeRule.targetMode, audioManager, notificationManager)
                     showStatusNotification(context, notificationManager, "Schedule Resumed", "${activeRule.title}: Switched to ${activeRule.targetMode.displayName}")
                 } else {
-                    applySoundMode(context, audioManager, notificationManager, SoundMode.NORMAL)
+                    SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     cancelStatusNotification(notificationManager)
                 }
                 VibeWidgetProvider.updateAll(context)
@@ -80,52 +92,24 @@ class AlarmReceiver : BroadcastReceiver() {
 
     private fun findCurrentActiveRule(schedules: List<ScheduleRule>): ScheduleRule? {
         val now = Calendar.getInstance()
-        val currentDay = now.get(Calendar.DAY_OF_WEEK)
+        val curDay = now.get(Calendar.DAY_OF_WEEK)
         val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
 
+        val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+        val yesterdayDay = yesterdayCal.get(Calendar.DAY_OF_WEEK)
+
         return schedules.firstOrNull { rule ->
-            if (!rule.isEnabled || !rule.daysOfWeek.contains(currentDay)) return@firstOrNull false
+            if (!rule.isEnabled || rule.daysOfWeek.isEmpty()) return@firstOrNull false
             val startMin = rule.startHour * 60 + rule.startMinute
             val endMin = rule.endHour * 60 + rule.endMinute
 
             if (startMin < endMin) {
-                curMinutes in startMin until endMin
+                rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin
             } else {
-                // Overnight rule
-                curMinutes >= startMin || curMinutes < endMin
+                // Overnight rule: active if started today evening, OR started yesterday evening and continuing this morning
+                (rule.daysOfWeek.contains(curDay) && curMinutes >= startMin) ||
+                (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
             }
-        }
-    }
-
-    private fun applySoundMode(
-        context: Context,
-        audioManager: AudioManager,
-        notificationManager: NotificationManager,
-        mode: SoundMode
-    ) {
-        try {
-            when (mode) {
-                SoundMode.VIBRATE -> {
-                    if (notificationManager.isNotificationPolicyAccessGranted) {
-                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
-                    }
-                    audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
-                }
-                SoundMode.SILENT -> {
-                    if (notificationManager.isNotificationPolicyAccessGranted) {
-                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
-                    }
-                    audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
-                }
-                SoundMode.NORMAL -> {
-                    if (notificationManager.isNotificationPolicyAccessGranted) {
-                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
-                    }
-                    audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
-                }
-            }
-        } catch (e: SecurityException) {
-            Log.e("AlarmReceiver", "Missing permission: ${e.message}")
         }
     }
 

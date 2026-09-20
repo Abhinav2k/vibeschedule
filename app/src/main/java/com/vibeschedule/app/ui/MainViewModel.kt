@@ -9,6 +9,7 @@ import com.vibeschedule.app.data.ScheduleRepository
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
+import com.vibeschedule.app.util.SoundModeHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,17 +71,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val now = Calendar.getInstance()
         val currentDay = now.get(Calendar.DAY_OF_WEEK)
         val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+        val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+        val yesterdayDay = yesterdayCal.get(Calendar.DAY_OF_WEEK)
 
         // 1. Check active schedule and calculate remaining minutes
         val active = allSchedules.firstOrNull { rule ->
-            if (!rule.daysOfWeek.contains(currentDay)) return@firstOrNull false
+            if (rule.daysOfWeek.isEmpty()) return@firstOrNull false
             val startMin = rule.startHour * 60 + rule.startMinute
             val endMin = rule.endHour * 60 + rule.endMinute
 
             if (startMin < endMin) {
-                curMinutes in startMin until endMin
+                rule.daysOfWeek.contains(currentDay) && curMinutes in startMin until endMin
             } else {
-                curMinutes >= startMin || curMinutes < endMin
+                (rule.daysOfWeek.contains(currentDay) && curMinutes >= startMin) ||
+                (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
             }
         }
         _activeSchedule.value = active
@@ -122,11 +126,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (pausedUntil != null && System.currentTimeMillis() >= pausedUntil) {
             _pausedUntilMillis.value = null
             if (active != null) {
-                try {
-                    audioManager.ringerMode = active.targetMode.ringerMode
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
             }
         }
 
@@ -139,17 +139,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _quickMuteRemainingSeconds.value = 0
                 // Restore sound mode
                 if (active != null) {
-                    try {
-                        audioManager.ringerMode = active.targetMode.ringerMode
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
                 } else {
-                    try {
-                        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    SoundModeHelper.applySoundMode(getApplication(), SoundMode.NORMAL, audioManager)
                 }
             } else {
                 _quickMuteRemainingSeconds.value = (diffMillis / 1000L).toInt()
@@ -199,7 +191,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _quickMuteRemainingSeconds.value = minutes * 60
 
         try {
-            audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+            SoundModeHelper.applySoundMode(getApplication(), SoundMode.VIBRATE, audioManager)
             scheduler.scheduleQuickMute(minutes)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -213,9 +205,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val active = _activeSchedule.value
         try {
             if (active != null) {
-                audioManager.ringerMode = active.targetMode.ringerMode
+                SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
             } else {
-                audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                SoundModeHelper.applySoundMode(getApplication(), SoundMode.NORMAL, audioManager)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -234,7 +226,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _pausedUntilMillis.value = targetMillis
 
         try {
-            audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+            SoundModeHelper.applySoundMode(getApplication(), SoundMode.NORMAL, audioManager)
             scheduler.schedulePauseEnd(targetMillis)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -248,7 +240,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val active = _activeSchedule.value
         if (active != null) {
             try {
-                audioManager.ringerMode = active.targetMode.ringerMode
+                SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.receiver.AlarmReceiver
+import com.vibeschedule.app.ui.MainActivity
 import java.util.Calendar
 
 class AlarmScheduler(private val context: Context) {
@@ -20,39 +21,137 @@ class AlarmScheduler(private val context: Context) {
             return
         }
 
-        // Schedule START alarm
-        val nextStartMillis = calculateNextTriggerMillis(rule.startHour, rule.startMinute, rule.daysOfWeek)
-        val startIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = AlarmReceiver.ACTION_SCHEDULE_START
-            putExtra(AlarmReceiver.EXTRA_RULE_ID, rule.id)
-            putExtra(AlarmReceiver.EXTRA_RULE_TITLE, rule.title)
-            putExtra(AlarmReceiver.EXTRA_TARGET_MODE, rule.targetMode.name)
-        }
-        val startPendingIntent = PendingIntent.getBroadcast(
-            context,
-            getStartRequestCode(rule.id),
-            startIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        setExactAlarm(nextStartMillis, startPendingIntent)
+        val now = Calendar.getInstance()
+        val curDay = now.get(Calendar.DAY_OF_WEEK)
+        val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
 
-        // Schedule END alarm
-        val nextEndMillis = calculateNextTriggerMillis(rule.endHour, rule.endMinute, rule.daysOfWeek)
-        val endIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = AlarmReceiver.ACTION_SCHEDULE_END
-            putExtra(AlarmReceiver.EXTRA_RULE_ID, rule.id)
-            putExtra(AlarmReceiver.EXTRA_RULE_TITLE, rule.title)
-            putExtra(AlarmReceiver.EXTRA_TARGET_MODE, rule.revertMode.name)
-        }
-        val endPendingIntent = PendingIntent.getBroadcast(
-            context,
-            getEndRequestCode(rule.id),
-            endIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        setExactAlarm(nextEndMillis, endPendingIntent)
+        val startMin = rule.startHour * 60 + rule.startMinute
+        val endMin = rule.endHour * 60 + rule.endMinute
 
-        Log.d("AlarmScheduler", "Scheduled '${rule.title}': Start=$nextStartMillis, End=$nextEndMillis")
+        // 1. Determine if this rule is ACTIVE right now
+        val isSameDay = startMin < endMin
+        val isActiveNow: Boolean
+        val activeEndCal: Calendar?
+
+        if (isSameDay) {
+            if (rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin) {
+                isActiveNow = true
+                activeEndCal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, rule.endHour)
+                    set(Calendar.MINUTE, rule.endMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+            } else {
+                isActiveNow = false
+                activeEndCal = null
+            }
+        } else {
+            // Overnight rule: e.g. 22:00 to 07:00
+            val startedToday = rule.daysOfWeek.contains(curDay) && curMinutes >= startMin
+            val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+            val yesterdayDay = yesterdayCal.get(Calendar.DAY_OF_WEEK)
+            val startedYesterday = rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin
+
+            if (startedToday) {
+                isActiveNow = true
+                // Started today evening, ends tomorrow morning
+                activeEndCal = Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                    set(Calendar.HOUR_OF_DAY, rule.endHour)
+                    set(Calendar.MINUTE, rule.endMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+            } else if (startedYesterday) {
+                isActiveNow = true
+                // Started yesterday evening, ends today morning
+                activeEndCal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, rule.endHour)
+                    set(Calendar.MINUTE, rule.endMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+            } else {
+                isActiveNow = false
+                activeEndCal = null
+            }
+        }
+
+        if (isActiveNow && activeEndCal != null) {
+            // Session is ACTIVE: schedule its matching END alarm
+            val endIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = AlarmReceiver.ACTION_SCHEDULE_END
+                putExtra(AlarmReceiver.EXTRA_RULE_ID, rule.id)
+                putExtra(AlarmReceiver.EXTRA_RULE_TITLE, rule.title)
+                putExtra(AlarmReceiver.EXTRA_TARGET_MODE, rule.revertMode.name)
+            }
+            val endPendingIntent = PendingIntent.getBroadcast(
+                context,
+                getEndRequestCode(rule.id),
+                endIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            setExactAlarm(activeEndCal.timeInMillis, endPendingIntent)
+            Log.d("AlarmScheduler", "Active rule '${rule.title}': END set for ${activeEndCal.time}")
+
+            // Also schedule the NEXT start that occurs after activeEndCal
+            val nextStartMillis = findNextStartMillis(rule, afterMillis = activeEndCal.timeInMillis)
+            val startIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = AlarmReceiver.ACTION_SCHEDULE_START
+                putExtra(AlarmReceiver.EXTRA_RULE_ID, rule.id)
+                putExtra(AlarmReceiver.EXTRA_RULE_TITLE, rule.title)
+                putExtra(AlarmReceiver.EXTRA_TARGET_MODE, rule.targetMode.name)
+            }
+            val startPendingIntent = PendingIntent.getBroadcast(
+                context,
+                getStartRequestCode(rule.id),
+                startIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            setExactAlarm(nextStartMillis, startPendingIntent)
+            Log.d("AlarmScheduler", "Active rule '${rule.title}': next START set for ${java.util.Date(nextStartMillis)}")
+        } else {
+            // Session is IDLE: find the next upcoming START, and schedule matching END = START + duration
+            val nextStartMillis = findNextStartMillis(rule, afterMillis = now.timeInMillis)
+
+            val startIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = AlarmReceiver.ACTION_SCHEDULE_START
+                putExtra(AlarmReceiver.EXTRA_RULE_ID, rule.id)
+                putExtra(AlarmReceiver.EXTRA_RULE_TITLE, rule.title)
+                putExtra(AlarmReceiver.EXTRA_TARGET_MODE, rule.targetMode.name)
+            }
+            val startPendingIntent = PendingIntent.getBroadcast(
+                context,
+                getStartRequestCode(rule.id),
+                startIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            setExactAlarm(nextStartMillis, startPendingIntent)
+
+            // Duration in minutes (accurately accounts for overnight)
+            val durationMinutes = if (isSameDay) {
+                endMin - startMin
+            } else {
+                (24 * 60 - startMin) + endMin
+            }
+            val nextEndMillis = nextStartMillis + (durationMinutes * 60_000L)
+
+            val endIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = AlarmReceiver.ACTION_SCHEDULE_END
+                putExtra(AlarmReceiver.EXTRA_RULE_ID, rule.id)
+                putExtra(AlarmReceiver.EXTRA_RULE_TITLE, rule.title)
+                putExtra(AlarmReceiver.EXTRA_TARGET_MODE, rule.revertMode.name)
+            }
+            val endPendingIntent = PendingIntent.getBroadcast(
+                context,
+                getEndRequestCode(rule.id),
+                endIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            setExactAlarm(nextEndMillis, endPendingIntent)
+            Log.d("AlarmScheduler", "Idle rule '${rule.title}': START=${java.util.Date(nextStartMillis)}, END=${java.util.Date(nextEndMillis)}")
+        }
     }
 
     fun cancelRule(rule: ScheduleRule) {
@@ -123,42 +222,59 @@ class AlarmScheduler(private val context: Context) {
     }
 
     private fun setExactAlarm(triggerAtMillis: Long, pendingIntent: PendingIntent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+        val showIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val showPendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            showIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, showPendingIntent)
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                }
             } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
             }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+        } catch (e: SecurityException) {
+            Log.e("AlarmScheduler", "Exact alarm permission error, falling back: ${e.message}")
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
         }
     }
 
-    private fun calculateNextTriggerMillis(hour: Int, minute: Int, daysOfWeek: List<Int>): Long {
-        val now = Calendar.getInstance()
-        var bestCandidate: Calendar? = null
+    private fun findNextStartMillis(rule: ScheduleRule, afterMillis: Long): Long {
+        val baseCal = Calendar.getInstance().apply { timeInMillis = afterMillis }
+        var earliestMillis: Long? = null
 
-        for (day in daysOfWeek) {
+        // Check the next 8 days from baseCal
+        for (dayOffset in 0..8) {
             val candidate = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
+                timeInMillis = baseCal.timeInMillis
+                add(Calendar.DAY_OF_YEAR, dayOffset)
+                set(Calendar.HOUR_OF_DAY, rule.startHour)
+                set(Calendar.MINUTE, rule.startMinute)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
-                set(Calendar.DAY_OF_WEEK, day)
             }
 
-            if (candidate.before(now) || candidate.timeInMillis <= now.timeInMillis) {
-                candidate.add(Calendar.WEEK_OF_YEAR, 1)
-            }
-
-            if (bestCandidate == null || candidate.before(bestCandidate)) {
-                bestCandidate = candidate
+            val dayOfWeek = candidate.get(Calendar.DAY_OF_WEEK)
+            if (rule.daysOfWeek.contains(dayOfWeek) && candidate.timeInMillis > afterMillis) {
+                if (earliestMillis == null || candidate.timeInMillis < earliestMillis) {
+                    earliestMillis = candidate.timeInMillis
+                }
             }
         }
 
-        return bestCandidate?.timeInMillis ?: (now.timeInMillis + 60_000L)
+        return earliestMillis ?: (afterMillis + 24 * 3600_000L)
     }
 
-    private fun getStartRequestCode(id: String): Int = (Math.abs(id.hashCode()) % 1_000_000) * 2
+    private fun getStartRequestCode(id: String): Int = ((id.hashCode() and 0x7FFFFFFF) % 1_000_000) * 2
     private fun getEndRequestCode(id: String): Int = getStartRequestCode(id) + 1
 }

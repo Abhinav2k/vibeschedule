@@ -35,10 +35,7 @@ class VibeWidgetProvider : AppWidgetProvider() {
             ACTION_WIDGET_CANCEL_ACTIVE -> {
                 // Cancel running schedule / quick mute and restore Normal sound
                 try {
-                    if (notificationManager.isNotificationPolicyAccessGranted) {
-                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
-                    }
-                    audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                    com.vibeschedule.app.util.SoundModeHelper.applySoundMode(context, com.vibeschedule.app.model.SoundMode.NORMAL, audioManager, notificationManager)
                     notificationManager.cancel(8823) // dismiss status notification
                     Toast.makeText(context, "Schedule Cancelled • Normal Ring", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
@@ -57,10 +54,7 @@ class VibeWidgetProvider : AppWidgetProvider() {
                 }
 
                 try {
-                    if (notificationManager.isNotificationPolicyAccessGranted) {
-                        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
-                    }
-                    audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                    com.vibeschedule.app.util.SoundModeHelper.applySoundMode(context, com.vibeschedule.app.model.SoundMode.NORMAL, audioManager, notificationManager)
                     scheduler.schedulePauseEnd(nextHour.timeInMillis)
                     Toast.makeText(context, "Skipped until next :00", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
@@ -92,13 +86,19 @@ class VibeWidgetProvider : AppWidgetProvider() {
             val now = Calendar.getInstance()
             val currentDay = now.get(Calendar.DAY_OF_WEEK)
             val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+            val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+            val yesterdayDay = yesterdayCal.get(Calendar.DAY_OF_WEEK)
 
             val activeRule = allSchedules.firstOrNull { rule ->
-                if (!rule.daysOfWeek.contains(currentDay)) return@firstOrNull false
+                if (rule.daysOfWeek.isEmpty()) return@firstOrNull false
                 val startMin = rule.startHour * 60 + rule.startMinute
                 val endMin = rule.endHour * 60 + rule.endMinute
-                if (startMin < endMin) curMinutes in startMin until endMin
-                else curMinutes >= startMin || curMinutes < endMin
+                if (startMin < endMin) {
+                    rule.daysOfWeek.contains(currentDay) && curMinutes in startMin until endMin
+                } else {
+                    (rule.daysOfWeek.contains(currentDay) && curMinutes >= startMin) ||
+                    (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
+                }
             }
 
             if (activeRule != null) {
