@@ -13,6 +13,7 @@ import com.vibeschedule.app.R
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.ui.MainActivity
+import com.vibeschedule.app.ui.screens.getNotifHighPriority
 import com.vibeschedule.app.widget.VibeWidgetProvider
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -180,6 +181,8 @@ object NotificationHelper {
             setOnClickPendingIntent(R.id.notif_expanded_root, openAppPI)
         }
 
+        val highPriority = getNotifHighPriority(context)
+
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(iconRes)
             .setContentTitle(title)
@@ -188,12 +191,12 @@ object NotificationHelper {
             .setCustomContentView(collapsedView)
             .setCustomBigContentView(expandedView)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-            .setPriority(NotificationCompat.PRIORITY_MAX) // Top priority
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Always visible on lock screen
-            .setCategory(NotificationCompat.CATEGORY_ALARM) // Alarm category ensures lockscreen presence
+            .setPriority(if (highPriority) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_DEFAULT)
+            .setVisibility(if (highPriority) NotificationCompat.VISIBILITY_PUBLIC else NotificationCompat.VISIBILITY_PRIVATE)
+            .setCategory(if (highPriority) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_STATUS)
             .setOngoing(true)
             .setShowWhen(false)
-            .setSilent(true) // Silent: no audio beeps when progress updates
+            .setSilent(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(openAppPI)
             .addAction(R.drawable.ic_widget_cancel, "End Now", revertPI)
@@ -202,7 +205,6 @@ object NotificationHelper {
             builder.addAction(R.drawable.ic_widget_skip, "Skip to :00", skipPI)
         }
 
-        // Set public version so secure lock screen renders the same interactive layout
         val builtNotification = builder.build()
         builder.setPublicVersion(builtNotification)
 
@@ -216,24 +218,29 @@ object NotificationHelper {
 
     private fun createNotificationChannel(context: Context, notificationManager: NotificationManager) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Delete previous lower-importance channels so system replaces them with high-importance
             try {
                 notificationManager.deleteNotificationChannel(OLD_CHANNEL_ID)
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v2")
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v3")
-            } catch (e: Exception) {
-                // Ignore
-            }
+            } catch (e: Exception) { }
+
+            val importance = if (getNotifHighPriority(context))
+                NotificationManager.IMPORTANCE_HIGH
+            else
+                NotificationManager.IMPORTANCE_DEFAULT
 
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 context.getString(R.string.channel_name),
-                NotificationManager.IMPORTANCE_HIGH // High importance ensures it shows even when non-important ones are hidden
+                importance
             ).apply {
                 description = context.getString(R.string.channel_description)
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
-                setSound(null, null) // Silent: do not ring
-                enableVibration(false) // Silent: do not buzz
+                lockscreenVisibility = if (getNotifHighPriority(context))
+                    NotificationCompat.VISIBILITY_PUBLIC
+                else
+                    NotificationCompat.VISIBILITY_PRIVATE
+                setSound(null, null)
+                enableVibration(false)
                 setShowBadge(false)
             }
             notificationManager.createNotificationChannel(channel)

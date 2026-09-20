@@ -47,9 +47,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
-import com.vibeschedule.app.ui.theme.AccentPurple
-import com.vibeschedule.app.ui.theme.AccentRed
-import com.vibeschedule.app.ui.theme.AccentTeal
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
 import com.vibeschedule.app.ui.theme.TextTertiary
@@ -118,7 +115,7 @@ fun AddEditScheduleDialog(
                     placeholder = { Text("Label (e.g. Work, Lecture)", color = TextTertiary) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPurple,
+                        focusedBorderColor = Color.White,
                         unfocusedBorderColor = Color(0x25FFFFFF),
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary
@@ -218,7 +215,7 @@ fun AddEditScheduleDialog(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(if (isSelected) AccentTeal else Color(0x15FFFFFF))
+                                .background(if (isSelected) Color.White else Color(0x15FFFFFF))
                                 .clickable {
                                     selectedDays = if (isSelected) {
                                         selectedDays - dayInt
@@ -255,8 +252,8 @@ fun AddEditScheduleDialog(
                         onClick = { targetMode = SoundMode.VIBRATE },
                         label = { Text("Vibrate") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AccentPurple.copy(alpha = 0.25f),
-                            selectedLabelColor = AccentPurple
+                            selectedContainerColor = Color(0x30FFFFFF),
+                            selectedLabelColor = Color.White
                         ),
                         shape = CircleShape
                     )
@@ -265,8 +262,8 @@ fun AddEditScheduleDialog(
                         onClick = { targetMode = SoundMode.SILENT },
                         label = { Text("Silent (DND)") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AccentRed.copy(alpha = 0.25f),
-                            selectedLabelColor = AccentRed
+                            selectedContainerColor = Color(0x30FFFFFF),
+                            selectedLabelColor = Color.White
                         ),
                         shape = CircleShape
                     )
@@ -297,7 +294,7 @@ fun AddEditScheduleDialog(
                     onSave(newRule)
                 },
                 enabled = selectedDays.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                 shape = CircleShape
             ) {
                 Text("Save", fontWeight = FontWeight.SemiBold)
@@ -330,7 +327,7 @@ private fun TimeBox(label: String, time: String, onClick: () -> Unit, modifier: 
                     imageVector = Icons.Default.AccessTime,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = AccentPurple
+                    tint = Color.White
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(time, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
@@ -344,8 +341,8 @@ private fun PresetChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(CircleShape)
-            .background(if (isSelected) AccentTeal.copy(alpha = 0.25f) else Color(0x12FFFFFF))
-            .border(0.5.dp, if (isSelected) AccentTeal.copy(alpha = 0.5f) else Color.Transparent, CircleShape)
+            .background(if (isSelected) Color(0x28FFFFFF) else Color(0x12FFFFFF))
+            .border(0.5.dp, if (isSelected) Color(0x55FFFFFF) else Color.Transparent, CircleShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
@@ -353,7 +350,7 @@ private fun PresetChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
             text = text,
             fontSize = 12.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) AccentTeal else TextSecondary
+            color = if (isSelected) Color.White else TextSecondary
         )
     }
 }

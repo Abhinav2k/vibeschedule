@@ -60,8 +60,6 @@ import com.vibeschedule.app.ui.QuickMuteConflict
 import com.vibeschedule.app.ui.components.GlassCard
 import com.vibeschedule.app.ui.components.PermissionBanner
 import com.vibeschedule.app.ui.components.ScheduleCard
-import com.vibeschedule.app.ui.theme.AccentAmber
-import com.vibeschedule.app.ui.theme.AccentTeal
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
 import com.vibeschedule.app.ui.theme.TextTertiary
@@ -187,7 +185,7 @@ private fun QuickMuteConflictCard(
             Icon(
                 imageVector = Icons.Default.Info,
                 contentDescription = null,
-                tint = AccentAmber,
+                tint = Color(0xFF888888),
                 modifier = Modifier.size(20.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -217,10 +215,7 @@ private fun QuickMuteConflictCard(
 
                     Button(
                         onClick = onOverride,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AccentAmber,
-                            contentColor = Color.Black
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                         shape = CircleShape
                     ) {
                         Text("Override (${conflict.pendingMinutes}m)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
@@ -255,7 +250,7 @@ private fun QuickMuteSection(
                 Icon(
                     imageVector = Icons.Default.Timer,
                     contentDescription = null,
-                    tint = AccentTeal,
+                    tint = Color(0xFF888888),
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
@@ -278,7 +273,7 @@ private fun QuickMuteSection(
                         text = "${min}m ${sec}s left",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = AccentTeal
+                        color = TextPrimary
                     )
                     Text(
                         text = "Cancel",

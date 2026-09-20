@@ -56,7 +56,7 @@ import com.vibeschedule.app.ui.components.AddEditScheduleDialog
 import com.vibeschedule.app.ui.components.LiquidTabSwitcher
 import com.vibeschedule.app.ui.screens.HomeScreen
 import com.vibeschedule.app.ui.screens.SchedulesScreen
-import com.vibeschedule.app.ui.theme.AccentPurple
+import com.vibeschedule.app.ui.screens.SettingsScreen
 import com.vibeschedule.app.ui.theme.BackgroundMeshBrush
 import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.VibeScheduleTheme
@@ -67,7 +67,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             VibeScheduleTheme(darkTheme = true) {
                 RequestNotificationPermission()
@@ -80,16 +79,9 @@ class MainActivity : ComponentActivity() {
     private fun RequestNotificationPermission() {
         val context = LocalContext.current
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val launcher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
-            ) { /* Granted or denied */ }
-
+            val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {}
             LaunchedEffect(Unit) {
-                if (ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.POST_NOTIFICATIONS
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
@@ -100,53 +92,32 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainAppScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Home, 1 = Schedules
+    var selectedTab by remember { mutableIntStateOf(0) }
     var previousTab by remember { mutableIntStateOf(0) }
-
     var showDialog by remember { mutableStateOf(false) }
     var editingRule by remember { mutableStateOf<ScheduleRule?>(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundMeshBrush)
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(BackgroundMeshBrush)) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                // Minimal Top Bar: Icon at Left, Liquid Tab Switcher at Center
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    // Left Icon
+                    // Left: App icon — monochrome white vibration icon
                     Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color(0x18FFFFFF))
-                            .border(1.dp, GlassBorderBrush, CircleShape),
+                        modifier = Modifier.align(Alignment.CenterStart).size(40.dp).clip(CircleShape)
+                            .background(Color(0x18FFFFFF)).border(1.dp, GlassBorderBrush, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Vibration,
-                            contentDescription = "VibeSchedule",
-                            tint = AccentPurple,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Icon(imageVector = Icons.Default.Vibration, contentDescription = "VibeSchedule", tint = Color.White, modifier = Modifier.size(22.dp))
                     }
 
-                    // Center Liquid Tab Switcher
+                    // Center: Tab switcher — Home, Schedules, Settings
                     LiquidTabSwitcher(
                         selectedTab = selectedTab,
-                        onTabSelected = {
-                            previousTab = selectedTab
-                            selectedTab = it
-                        },
-                        tabs = listOf("Home", "Schedules"),
+                        onTabSelected = { previousTab = selectedTab; selectedTab = it },
+                        tabs = listOf("Home", "Schedules", "Settings"),
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -154,12 +125,9 @@ fun MainAppScreen(viewModel: MainViewModel) {
             floatingActionButton = {
                 if (selectedTab == 1) {
                     FloatingActionButton(
-                        onClick = {
-                            editingRule = null
-                            showDialog = true
-                        },
-                        containerColor = AccentPurple,
-                        contentColor = Color.White,
+                        onClick = { editingRule = null; showDialog = true },
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
                         shape = CircleShape
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Add Schedule")
@@ -167,46 +135,21 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 }
             }
         ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 AnimatedContent(
                     targetState = selectedTab,
                     transitionSpec = {
                         val goingRight = targetState > previousTab
-                        val enterSlide = slideInHorizontally(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        ) { if (goingRight) it else -it } + fadeIn()
-                        val exitSlide = slideOutHorizontally(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        ) { if (goingRight) -it else it } + fadeOut()
-                        enterSlide togetherWith exitSlide
+                        val enter = slideInHorizontally(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) { if (goingRight) it else -it } + fadeIn()
+                        val exit = slideOutHorizontally(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) { if (goingRight) -it else it } + fadeOut()
+                        enter togetherWith exit
                     },
                     label = "tabTransition"
                 ) { target ->
                     when (target) {
-                        0 -> HomeScreen(
-                            viewModel = viewModel,
-                            onNavigateToSchedules = {
-                                previousTab = selectedTab
-                                selectedTab = 1
-                            }
-                        )
-                        1 -> SchedulesScreen(
-                            viewModel = viewModel,
-                            onEditRule = { rule ->
-                                editingRule = rule
-                                showDialog = true
-                            }
-                        )
+                        0 -> HomeScreen(viewModel = viewModel, onNavigateToSchedules = { previousTab = selectedTab; selectedTab = 1 })
+                        1 -> SchedulesScreen(viewModel = viewModel, onEditRule = { rule -> editingRule = rule; showDialog = true })
+                        2 -> SettingsScreen()
                     }
                 }
             }

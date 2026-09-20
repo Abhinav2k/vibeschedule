@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vibeschedule.app.ui.theme.AccentTeal
 import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.SurfaceGlass
 import com.vibeschedule.app.ui.theme.TextPrimary
@@ -55,10 +54,7 @@ fun GlassCard(
             .background(backgroundColor)
             .border(BorderStroke(0.75.dp, borderBrush), shape)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            content = content
-        )
+        Column(modifier = Modifier.padding(20.dp), content = content)
     }
 }
 
@@ -78,14 +74,11 @@ fun LiquidTabSwitcher(
             .border(BorderStroke(0.75.dp, Color(0x1CFFFFFF)), pillShape)
             .padding(3.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             tabs.forEachIndexed { index, title ->
                 val isSelected = selectedTab == index
                 val animatedBg by animateColorAsState(
-                    targetValue = if (isSelected) Color(0x28FFFFFF) else Color.Transparent,
+                    targetValue = if (isSelected) Color(0x30FFFFFF) else Color.Transparent,
                     animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                     label = "tabBg"
                 )
@@ -99,19 +92,8 @@ fun LiquidTabSwitcher(
                     modifier = Modifier
                         .clip(pillShape)
                         .background(animatedBg)
-                        .then(
-                            if (isSelected) {
-                                Modifier.border(
-                                    BorderStroke(0.5.dp, Color(0x35FFFFFF)),
-                                    pillShape
-                                )
-                            } else Modifier
-                        )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { onTabSelected(index) }
-                        )
+                        .then(if (isSelected) Modifier.border(BorderStroke(0.5.dp, Color(0x35FFFFFF)), pillShape) else Modifier)
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = { onTabSelected(index) })
                         .padding(horizontal = 20.dp, vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -129,50 +111,27 @@ fun LiquidTabSwitcher(
 }
 
 @Composable
-fun GlowingIndicator(
-    isActive: Boolean,
-    modifier: Modifier = Modifier
-) {
+fun GlowingIndicator(isActive: Boolean, modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 0.85f, targetValue = 1.3f,
+        animationSpec = infiniteRepeatable(animation = tween(1200, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "scale"
     )
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.85f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 0.3f, targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(animation = tween(1200, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "alpha"
     )
 
-    val color = if (isActive) AccentTeal else Color(0x66FFFFFF)
+    val color = if (isActive) Color.White else Color(0x55FFFFFF)
 
-    Box(
-        modifier = modifier.size(14.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = modifier.size(14.dp), contentAlignment = Alignment.Center) {
         if (isActive) {
             Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .scale(scale)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = alpha * 0.4f))
+                modifier = Modifier.size(14.dp).scale(scale).clip(CircleShape).background(color.copy(alpha = alpha * 0.35f))
             )
         }
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
+        Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(color))
     }
 }

@@ -24,7 +24,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -42,9 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
-import com.vibeschedule.app.ui.theme.AccentPurple
-import com.vibeschedule.app.ui.theme.AccentRed
-import com.vibeschedule.app.ui.theme.AccentTeal
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
 import com.vibeschedule.app.ui.theme.TextTertiary
@@ -61,13 +57,10 @@ fun ScheduleCard(
     var menuExpanded by remember { mutableStateOf(false) }
 
     GlassCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 5.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 5.dp),
         shape = RoundedCornerShape(22.dp),
         backgroundColor = if (rule.isEnabled) Color(0x15FFFFFF) else Color(0x08FFFFFF)
     ) {
-        // Header: Title + Time + Switch + Menu
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -76,18 +69,14 @@ fun ScheduleCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = rule.title,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = (-0.2).sp,
+                    fontSize = 17.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.2).sp,
                     color = if (rule.isEnabled) TextPrimary else TextTertiary
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${rule.formatStartTime()} — ${rule.formatEndTime()}",
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.3).sp,
-                    color = if (rule.isEnabled) AccentPurple else TextTertiary
+                    fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp,
+                    color = if (rule.isEnabled) TextPrimary else TextTertiary
                 )
             }
 
@@ -96,44 +85,26 @@ fun ScheduleCard(
                     checked = rule.isEnabled,
                     onCheckedChange = onToggle,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = AccentTeal,
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = Color.White,
                         uncheckedTrackColor = Color(0x20FFFFFF),
-                        uncheckedThumbColor = Color(0x88FFFFFF)
+                        uncheckedThumbColor = Color(0x66FFFFFF)
                     )
                 )
-
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreHoriz,
-                            contentDescription = "Options",
-                            tint = TextSecondary
-                        )
+                        Icon(imageVector = Icons.Default.MoreHoriz, contentDescription = "Options", tint = TextSecondary)
                     }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
-                    ) {
+                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                         DropdownMenuItem(
                             text = { Text("Edit") },
-                            onClick = {
-                                menuExpanded = false
-                                onEdit()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                            }
+                            onClick = { menuExpanded = false; onEdit() },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp)) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete", color = AccentRed) },
-                            onClick = {
-                                menuExpanded = false
-                                onDelete()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Delete, contentDescription = null, tint = AccentRed, modifier = Modifier.size(18.dp))
-                            }
+                            text = { Text("Delete", color = Color(0xFFFF6B6B)) },
+                            onClick = { menuExpanded = false; onDelete() },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFFF6B6B), modifier = Modifier.size(18.dp)) }
                         )
                     }
                 }
@@ -142,45 +113,30 @@ fun ScheduleCard(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Footer: Mode Pill + Days Indicator
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Mode indicator pill
+            // Mode pill — monochrome
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(
-                        if (rule.targetMode == SoundMode.VIBRATE) AccentPurple.copy(alpha = 0.18f)
-                        else AccentRed.copy(alpha = 0.18f)
-                    )
-                    .border(
-                        0.5.dp,
-                        if (rule.targetMode == SoundMode.VIBRATE) AccentPurple.copy(alpha = 0.35f)
-                        else AccentRed.copy(alpha = 0.35f),
-                        CircleShape
-                    )
+                    .background(Color(0x20FFFFFF))
+                    .border(0.5.dp, Color(0x30FFFFFF), CircleShape)
                     .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Icon(
                     imageVector = if (rule.targetMode == SoundMode.VIBRATE) Icons.Default.Vibration else Icons.Default.NotificationsOff,
                     contentDescription = null,
                     modifier = Modifier.size(12.dp),
-                    tint = if (rule.targetMode == SoundMode.VIBRATE) AccentPurple else AccentRed
+                    tint = TextSecondary
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = rule.targetMode.displayName,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (rule.targetMode == SoundMode.VIBRATE) AccentPurple else AccentRed
-                )
+                Text(text = rule.targetMode.displayName, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
             }
 
-            // Days of week row
             DaysOfWeekRow(daysOfWeek = rule.daysOfWeek, isEnabled = rule.isEnabled)
         }
     }
@@ -189,40 +145,22 @@ fun ScheduleCard(
 @Composable
 private fun DaysOfWeekRow(daysOfWeek: List<Int>, isEnabled: Boolean) {
     val dayLabels = listOf(
-        Calendar.MONDAY to "M",
-        Calendar.TUESDAY to "T",
-        Calendar.WEDNESDAY to "W",
-        Calendar.THURSDAY to "T",
-        Calendar.FRIDAY to "F",
-        Calendar.SATURDAY to "S",
-        Calendar.SUNDAY to "S"
+        Calendar.MONDAY to "M", Calendar.TUESDAY to "T", Calendar.WEDNESDAY to "W",
+        Calendar.THURSDAY to "T", Calendar.FRIDAY to "F",
+        Calendar.SATURDAY to "S", Calendar.SUNDAY to "S"
     )
-
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         dayLabels.forEach { (dayInt, label) ->
             val isSelected = daysOfWeek.contains(dayInt)
             Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(
-                        when {
-                            !isEnabled -> Color.Transparent
-                            isSelected -> AccentTeal
-                            else -> Color(0x12FFFFFF)
-                        }
-                    ),
+                modifier = Modifier.size(20.dp).clip(CircleShape).background(
+                    when { !isEnabled -> Color.Transparent; isSelected -> Color(0xDDFFFFFF); else -> Color(0x12FFFFFF) }
+                ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = label,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
-                        !isEnabled && isSelected -> TextTertiary
-                        isSelected -> Color.White
-                        else -> TextTertiary
-                    }
+                    text = label, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                    color = when { isSelected && isEnabled -> Color.Black; isSelected -> TextTertiary; else -> TextTertiary }
                 )
             }
         }
