@@ -56,7 +56,6 @@ class AlarmScheduler(private val context: Context) {
     }
 
     fun cancelRule(rule: ScheduleRule) {
-        // Cancel START
         val startIntent = Intent(context, AlarmReceiver::class.java)
         val startPI = PendingIntent.getBroadcast(
             context,
@@ -69,7 +68,6 @@ class AlarmScheduler(private val context: Context) {
             startPI.cancel()
         }
 
-        // Cancel END
         val endIntent = Intent(context, AlarmReceiver::class.java)
         val endPI = PendingIntent.getBroadcast(
             context,
@@ -80,19 +78,6 @@ class AlarmScheduler(private val context: Context) {
         if (endPI != null) {
             alarmManager.cancel(endPI)
             endPI.cancel()
-        }
-        Log.d("AlarmScheduler", "Cancelled alarms for '${rule.title}'")
-    }
-
-    private fun setExactAlarm(triggerAtMillis: Long, pendingIntent: PendingIntent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-            } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-            }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
         }
     }
 
@@ -110,11 +95,49 @@ class AlarmScheduler(private val context: Context) {
         setExactAlarm(triggerAtMillis, pi)
     }
 
+    fun schedulePauseEnd(triggerAtMillis: Long) {
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = AlarmReceiver.ACTION_PAUSE_END
+        }
+        val pi = PendingIntent.getBroadcast(
+            context,
+            888888,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        setExactAlarm(triggerAtMillis, pi)
+    }
+
+    fun cancelPauseEnd() {
+        val intent = Intent(context, AlarmReceiver::class.java)
+        val pi = PendingIntent.getBroadcast(
+            context,
+            888888,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pi != null) {
+            alarmManager.cancel(pi)
+            pi.cancel()
+        }
+    }
+
+    private fun setExactAlarm(triggerAtMillis: Long, pendingIntent: PendingIntent) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+        }
+    }
+
     private fun calculateNextTriggerMillis(hour: Int, minute: Int, daysOfWeek: List<Int>): Long {
         val now = Calendar.getInstance()
         var bestCandidate: Calendar? = null
 
-        // Check each allowed day over the next 7 days
         for (day in daysOfWeek) {
             val candidate = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, hour)
@@ -124,7 +147,6 @@ class AlarmScheduler(private val context: Context) {
                 set(Calendar.DAY_OF_WEEK, day)
             }
 
-            // If the time already passed this week, advance by 7 days
             if (candidate.before(now) || candidate.timeInMillis <= now.timeInMillis) {
                 candidate.add(Calendar.WEEK_OF_YEAR, 1)
             }

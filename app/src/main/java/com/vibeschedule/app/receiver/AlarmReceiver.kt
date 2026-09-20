@@ -12,8 +12,10 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.vibeschedule.app.R
 import com.vibeschedule.app.data.ScheduleRepository
+import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
+import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -32,7 +34,6 @@ class AlarmReceiver : BroadcastReceiver() {
                 applySoundMode(context, audioManager, notificationManager, targetMode)
                 showStatusNotification(context, notificationManager, "VibeSchedule Active", "$ruleTitle: Switched to ${targetMode.displayName}")
 
-                // Re-arm for subsequent occurrences
                 val repo = ScheduleRepository(context)
                 repo.getScheduleById(ruleId)?.let { rule ->
                     AlarmScheduler(context).scheduleRule(rule)
@@ -41,14 +42,12 @@ class AlarmReceiver : BroadcastReceiver() {
 
             ACTION_SCHEDULE_END -> {
                 val ruleId = intent.getStringExtra(EXTRA_RULE_ID) ?: return
-                val ruleTitle = intent.getStringExtra(EXTRA_RULE_TITLE) ?: "Scheduled Event"
                 val revertModeStr = intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.NORMAL.name
                 val revertMode = SoundMode.valueOf(revertModeStr)
 
                 applySoundMode(context, audioManager, notificationManager, revertMode)
                 cancelStatusNotification(notificationManager)
 
-                // Re-arm for subsequent occurrences
                 val repo = ScheduleRepository(context)
                 repo.getScheduleById(ruleId)?.let { rule ->
                     AlarmScheduler(context).scheduleRule(rule)
@@ -58,6 +57,38 @@ class AlarmReceiver : BroadcastReceiver() {
             ACTION_QUICK_MUTE_END -> {
                 applySoundMode(context, audioManager, notificationManager, SoundMode.NORMAL)
                 cancelStatusNotification(notificationManager)
+            }
+
+            ACTION_PAUSE_END -> {
+                // Check if any rule is currently active right now
+                val repo = ScheduleRepository(context)
+                val activeRule = findCurrentActiveRule(repo.getAllSchedules())
+                if (activeRule != null && activeRule.isEnabled) {
+                    applySoundMode(context, audioManager, notificationManager, activeRule.targetMode)
+                    showStatusNotification(context, notificationManager, "Schedule Resumed", "${activeRule.title}: Switched to ${activeRule.targetMode.displayName}")
+                } else {
+                    applySoundMode(context, audioManager, notificationManager, SoundMode.NORMAL)
+                    cancelStatusNotification(notificationManager)
+                }
+            }
+        }
+    }
+
+    private fun findCurrentActiveRule(schedules: List<ScheduleRule>): ScheduleRule? {
+        val now = Calendar.getInstance()
+        val currentDay = now.get(Calendar.DAY_OF_WEEK)
+        val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+
+        return schedules.firstOrNull { rule ->
+            if (!rule.isEnabled || !rule.daysOfWeek.contains(currentDay)) return@firstOrNull false
+            val startMin = rule.startHour * 60 + rule.startMinute
+            val endMin = rule.endHour * 60 + rule.endMinute
+
+            if (startMin < endMin) {
+                curMinutes in startMin until endMin
+            } else {
+                // Overnight rule
+                curMinutes >= startMin || curMinutes < endMin
             }
         }
     }
@@ -71,7 +102,6 @@ class AlarmReceiver : BroadcastReceiver() {
         try {
             when (mode) {
                 SoundMode.VIBRATE -> {
-                    // Turn off DND first if active so vibration alerts go through
                     if (notificationManager.isNotificationPolicyAccessGranted) {
                         notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                     }
@@ -90,9 +120,8 @@ class AlarmReceiver : BroadcastReceiver() {
                     audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
                 }
             }
-            Log.d("AlarmReceiver", "Successfully set mode to: ${mode.name}")
         } catch (e: SecurityException) {
-            Log.e("AlarmReceiver", "Missing permission to change ringer mode: ${e.message}")
+            Log.e("AlarmReceiver", "Missing permission: ${e.message}")
         }
     }
 
@@ -147,6 +176,7 @@ class AlarmReceiver : BroadcastReceiver() {
         const val ACTION_SCHEDULE_START = "com.vibeschedule.app.ACTION_SCHEDULE_START"
         const val ACTION_SCHEDULE_END = "com.vibeschedule.app.ACTION_SCHEDULE_END"
         const val ACTION_QUICK_MUTE_END = "com.vibeschedule.app.ACTION_QUICK_MUTE_END"
+        const val ACTION_PAUSE_END = "com.vibeschedule.app.ACTION_PAUSE_END"
         const val ACTION_REVERT_NOW = "com.vibeschedule.app.ACTION_REVERT_NOW"
 
         const val EXTRA_RULE_ID = "EXTRA_RULE_ID"
