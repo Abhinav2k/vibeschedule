@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#59FF453A">
+    android:color="#40FFFFFF">
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
             <corners android:radius="18dp" />
@@ -9,25 +9,25 @@
     </item>
     <item>
         <selector>
-            <!-- Pressed state: illuminated coral red flare with glowing border -->
+            <!-- Pressed state: elevated charcoal flare with bright border -->
             <item android:state_pressed="true">
                 <shape android:shape="rectangle">
                     <corners android:radius="18dp" />
-                    <solid android:color="#F2381418" />
+                    <solid android:color="#F226262A" />
                     <stroke
                         android:width="1.5dp"
-                        android:color="#B3FF453A" />
+                        android:color="#66FFFFFF" />
                 </shape>
             </item>
 
-            <!-- Default state: Opaque dark crimson slate with transparent coral red outline -->
+            <!-- Default state: Deep obsidian black with subtle translucent white outline -->
             <item>
                 <shape android:shape="rectangle">
                     <corners android:radius="18dp" />
-                    <solid android:color="#F21E1113" />
+                    <solid android:color="#F2121214" />
                     <stroke
                         android:width="1.25dp"
-                        android:color="#59FF453A" />
+                        android:color="#33FFFFFF" />
                 </shape>
             </item>
         </selector>
