@@ -201,6 +201,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun cancelQuickMute() {
         _quickMuteUntilMillis.value = null
         _quickMuteRemainingSeconds.value = 0
+        scheduler.cancelQuickMute()
+
+        val notificationManager = getApplication<Application>().getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+        notificationManager?.cancel(8823)
 
         val active = _activeSchedule.value
         try {

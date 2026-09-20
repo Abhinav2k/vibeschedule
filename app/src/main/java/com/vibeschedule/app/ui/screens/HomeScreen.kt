@@ -202,8 +202,7 @@ fun HomeScreen(
                     }
 
                     Button(
-                        onClick = { },
-                        modifier = Modifier.bounceClick { viewModel.cancelQuickMute() },
+                        onClick = { viewModel.cancelQuickMute() },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0x25FFFFFF),
                             contentColor = TextPrimary
@@ -369,8 +368,7 @@ fun HomeScreen(
 
                 if (isPaused) {
                     Button(
-                        onClick = { },
-                        modifier = Modifier.bounceClick { viewModel.cancelPause() },
+                        onClick = { viewModel.cancelPause() },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AccentAmber,
                             contentColor = Color.Black
@@ -383,9 +381,8 @@ fun HomeScreen(
                     }
                 } else {
                     Button(
-                        onClick = { },
+                        onClick = { viewModel.pauseUntilNextOClock() },
                         enabled = isPauseEligible,
-                        modifier = if (isPauseEligible) Modifier.bounceClick { viewModel.pauseUntilNextOClock() } else Modifier,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AccentPurple,
                             disabledContainerColor = Color(0x14FFFFFF),

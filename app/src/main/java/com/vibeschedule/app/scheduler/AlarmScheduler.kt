@@ -221,6 +221,22 @@ class AlarmScheduler(private val context: Context) {
         }
     }
 
+    fun cancelQuickMute() {
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = AlarmReceiver.ACTION_QUICK_MUTE_END
+        }
+        val pi = PendingIntent.getBroadcast(
+            context,
+            999999,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pi != null) {
+            alarmManager.cancel(pi)
+            pi.cancel()
+        }
+    }
+
     private fun setExactAlarm(triggerAtMillis: Long, pendingIntent: PendingIntent) {
         val showIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
