@@ -11,9 +11,10 @@ import android.media.AudioManager
 import android.widget.RemoteViews
 import android.widget.Toast
 import com.vibeschedule.app.R
+import com.vibeschedule.app.data.ScheduleRepository
+import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
-import com.vibeschedule.app.ui.MainActivity
 import com.vibeschedule.app.util.SoundModeHelper
 import java.util.Calendar
 
@@ -33,10 +34,21 @@ class VibeWidgetProvider : AppWidgetProvider() {
 
         when (intent.action) {
             ACTION_WIDGET_CANCEL_ACTIVE -> {
+                val activeRule = getActiveScheduleRule(context)
+                val isPhoneMuted = isMutedOrVibrating(audioManager)
+                val isNotificationActive = isStatusNotificationShowing(notificationManager)
+
+                // If no active schedule, timer, or notification is running, do nothing
+                if (activeRule == null && !isPhoneMuted && !isNotificationActive) {
+                    Toast.makeText(context, "No active schedule or timer", Toast.LENGTH_SHORT).show()
+                    return
+                }
+
                 // Cancel running schedule / quick mute and restore Normal sound
                 try {
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     notificationManager.cancel(8823) // dismiss status notification
+                    scheduler.cancelPauseEnd()
                     Toast.makeText(context, "Schedule Cancelled • Normal Ring", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -45,6 +57,15 @@ class VibeWidgetProvider : AppWidgetProvider() {
             }
 
             ACTION_WIDGET_SKIP_PERIOD -> {
+                val activeRule = getActiveScheduleRule(context)
+                val startingSoonRule = getStartingSoonRule(context)
+
+                // If no active schedule or upcoming schedule starting soon, do nothing
+                if (activeRule == null && startingSoonRule == null) {
+                    Toast.makeText(context, "No active schedule to skip", Toast.LENGTH_SHORT).show()
+                    return
+                }
+
                 // Skip / pause until next O'clock
                 val nextHour = Calendar.getInstance().apply {
                     add(Calendar.HOUR_OF_DAY, 1)
@@ -56,7 +77,8 @@ class VibeWidgetProvider : AppWidgetProvider() {
                 try {
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     scheduler.schedulePauseEnd(nextHour.timeInMillis)
-                    Toast.makeText(context, "Skipped until next :00", Toast.LENGTH_SHORT).show()
+                    val label = activeRule?.title ?: startingSoonRule?.title ?: "Schedule"
+                    Toast.makeText(context, "Skipped $label until next :00", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -68,6 +90,60 @@ class VibeWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_WIDGET_CANCEL_ACTIVE = "com.vibeschedule.app.ACTION_WIDGET_CANCEL_ACTIVE"
         const val ACTION_WIDGET_SKIP_PERIOD = "com.vibeschedule.app.ACTION_WIDGET_SKIP_PERIOD"
+
+        private fun getActiveScheduleRule(context: Context): ScheduleRule? {
+            val repo = ScheduleRepository(context)
+            val allSchedules = repo.getAllSchedules().filter { it.isEnabled }
+            val now = Calendar.getInstance()
+            val curDay = now.get(Calendar.DAY_OF_WEEK)
+            val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+            val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+            val yesterdayDay = yesterdayCal.get(Calendar.DAY_OF_WEEK)
+
+            return allSchedules.firstOrNull { rule ->
+                if (rule.daysOfWeek.isEmpty()) return@firstOrNull false
+                val startMin = rule.startHour * 60 + rule.startMinute
+                val endMin = rule.endHour * 60 + rule.endMinute
+
+                if (startMin < endMin) {
+                    rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin
+                } else {
+                    (rule.daysOfWeek.contains(curDay) && curMinutes >= startMin) ||
+                    (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
+                }
+            }
+        }
+
+        private fun getStartingSoonRule(context: Context): ScheduleRule? {
+            val repo = ScheduleRepository(context)
+            val allSchedules = repo.getAllSchedules().filter { it.isEnabled }
+            val now = Calendar.getInstance()
+            val curDay = now.get(Calendar.DAY_OF_WEEK)
+            val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+
+            for (rule in allSchedules) {
+                if (!rule.daysOfWeek.contains(curDay)) continue
+                val startMin = rule.startHour * 60 + rule.startMinute
+                val diff = startMin - curMinutes
+                if (diff in 1..25) {
+                    return rule
+                }
+            }
+            return null
+        }
+
+        private fun isMutedOrVibrating(audioManager: AudioManager): Boolean {
+            return audioManager.ringerMode == AudioManager.RINGER_MODE_VIBRATE ||
+                   audioManager.ringerMode == AudioManager.RINGER_MODE_SILENT
+        }
+
+        private fun isStatusNotificationShowing(notificationManager: NotificationManager): Boolean {
+            return try {
+                notificationManager.activeNotifications.any { it.id == 8823 }
+            } catch (e: Exception) {
+                false
+            }
+        }
 
         fun updateAll(context: Context) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
