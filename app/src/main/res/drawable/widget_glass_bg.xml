@@ -1,34 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Base obsidian liquid glass body -->
+    <!-- Subtle outer drop shadow -->
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="24dp" />
-            <gradient
-                android:angle="270"
-                android:startColor="#E6151722"
-                android:centerColor="#D90D0E15"
-                android:endColor="#E608090E" />
-            <stroke
-                android:width="1dp"
-                android:color="#38FFFFFF" />
+            <corners android:radius="26dp" />
+            <solid android:color="#20000000" />
         </shape>
     </item>
-    <!-- Top specular glass highlight gleam -->
+
+    <!-- Translucent Frosted Glass Base (signature iPhone liquid glass tray) -->
+    <item
+        android:left="0.5dp"
+        android:top="0.5dp"
+        android:right="0.5dp"
+        android:bottom="0.5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#592A3042"
+                android:centerColor="#471A1E2B"
+                android:endColor="#5412151F" />
+            <stroke
+                android:width="1dp"
+                android:color="#4DFFFFFF" />
+        </shape>
+    </item>
+
+    <!-- Top Specular Refraction Edge (Apple glass top reflection) -->
     <item
         android:left="1dp"
-        android:right="1dp"
         android:top="1dp"
-        android:bottom="16dp">
+        android:right="1dp"
+        android:bottom="18dp">
         <shape android:shape="rectangle">
             <corners
-                android:topLeftRadius="23dp"
-                android:topRightRadius="23dp"
+                android:topLeftRadius="25dp"
+                android:topRightRadius="25dp"
                 android:bottomLeftRadius="0dp"
                 android:bottomRightRadius="0dp" />
             <gradient
                 android:angle="270"
-                android:startColor="#1EFFFFFF"
+                android:startColor="#38FFFFFF"
                 android:endColor="#00FFFFFF" />
         </shape>
     </item>
