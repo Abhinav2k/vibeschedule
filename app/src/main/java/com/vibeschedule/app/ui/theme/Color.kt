@@ -12,8 +12,11 @@ val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
 // Liquid Glass & Premium Dark Palette
-val DeepDarkBg = Color(0xFF090A0F)
-val DarkNavyBg = Color(0xFF0F121C)
+val DeepDark = Color(0xFF090A0F)
+val SurfaceDark = Color(0xFF131622)
+val DeepDarkBg = DeepDark
+val DarkNavyBg = SurfaceDark
+
 val SurfaceGlass = Color(0x18FFFFFF)
 val SurfaceGlassElevated = Color(0x24FFFFFF)
 val SurfaceGlassActive = Color(0x35FFFFFF)
