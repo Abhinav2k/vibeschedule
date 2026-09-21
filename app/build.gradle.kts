@@ -1,5 +1,3 @@
-import com.android.build.gradle.api.BaseVariantOutput
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -39,13 +37,6 @@ android {
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             manifestPlaceholders["appName"] = "VibeSchedule"
-        }
-    }
-
-    applicationVariants.all {
-        val variant = this
-        outputs.all {
-            (this as? BaseVariantOutput)?.outputFileName = "VibeSchedule-v${variant.versionName}-${variant.buildType.name}.apk"
         }
     }
 
