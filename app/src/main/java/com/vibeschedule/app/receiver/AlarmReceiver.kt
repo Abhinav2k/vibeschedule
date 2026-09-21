@@ -56,11 +56,13 @@ class AlarmReceiver : BroadcastReceiver() {
                 VibeWidgetProvider.updateAll(context)
             }
             ACTION_QUICK_MUTE_END -> {
+                ScheduleRepository(context).setQuickMuteUntil(null)
                 SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                 NotificationHelper.dismissNotification(context)
                 VibeWidgetProvider.updateAll(context)
             }
             ACTION_PAUSE_END -> {
+                ScheduleRepository(context).setPauseUntil(null)
                 val activeRule = findCurrentActiveRule(ScheduleRepository(context).getAllSchedules())
                 if (activeRule != null && activeRule.isEnabled) {
                     SoundModeHelper.applySoundMode(context, activeRule.targetMode, audioManager, notificationManager)

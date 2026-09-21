@@ -33,24 +33,30 @@ class VibeWidgetProvider : AppWidgetProvider() {
 
         when (intent.action) {
             ACTION_WIDGET_CANCEL_ACTIVE -> {
+                val repo = ScheduleRepository(context)
                 val activeRule = getActiveScheduleRule(context)
+                val isQuickMuteActive = repo.getQuickMuteUntil() != null
+                val isPauseActive = repo.getPauseUntil() != null
                 val isPhoneMuted = isMutedOrVibrating(audioManager)
                 val isNotificationActive = isStatusNotificationShowing(notificationManager)
-                if (activeRule == null && !isPhoneMuted && !isNotificationActive) {
+                if (activeRule == null && !isQuickMuteActive && !isPauseActive && !isPhoneMuted && !isNotificationActive) {
                     Toast.makeText(context, "No active schedule or timer", Toast.LENGTH_SHORT).show()
                     return
                 }
                 try {
+                    repo.setQuickMuteUntil(null)
+                    repo.setPauseUntil(null)
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     NotificationHelper.dismissNotification(context)
                     scheduler.cancelPauseEnd()
                     scheduler.cancelQuickMute()
-                    Toast.makeText(context, "Schedule Cancelled • Normal Ring", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Cancelled • Normal Ring", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) { e.printStackTrace() }
                 updateAll(context)
             }
 
             ACTION_WIDGET_SKIP_PERIOD -> {
+                val repo = ScheduleRepository(context)
                 val activeRule = getActiveScheduleRule(context)
                 val startingSoonRule = getStartingSoonRule(context)
                 if (activeRule == null && startingSoonRule == null) {
@@ -64,6 +70,7 @@ class VibeWidgetProvider : AppWidgetProvider() {
                     set(Calendar.MILLISECOND, 0)
                 }
                 try {
+                    repo.setPauseUntil(nextHour.timeInMillis)
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     scheduler.schedulePauseEnd(nextHour.timeInMillis)
                     val label = activeRule?.title ?: startingSoonRule?.title ?: "Schedule"
@@ -113,13 +120,33 @@ class VibeWidgetProvider : AppWidgetProvider() {
         } catch (e: Exception) { false }
 
         private fun statusText(context: Context): String {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val repo = ScheduleRepository(context)
+
+            // 1. Check persistent Quick Mute timer
+            val qmUntil = repo.getQuickMuteUntil()
+            if (qmUntil != null && qmUntil > System.currentTimeMillis()) {
+                val remSeconds = ((qmUntil - System.currentTimeMillis()) / 1000L).coerceAtLeast(0)
+                val remMin = (remSeconds + 59) / 60
+                return if (remMin > 0) "● Timer running (${remMin}m)" else "● Timer running"
+            }
+
+            // 2. Check persistent Pause
+            val pauseUntil = repo.getPauseUntil()
+            if (pauseUntil != null && pauseUntil > System.currentTimeMillis()) {
+                return "● Schedule paused"
+            }
+
+            // 3. Active schedule rule
             val activeRule = getActiveScheduleRule(context)
             if (activeRule != null) return "● Schedule running"
+
+            // 4. Fallback check: active notification
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val activeNotification = try {
                 notificationManager.activeNotifications.firstOrNull { it.id == NotificationHelper.NOTIFICATION_ID }
             } catch (e: Exception) { null }
-            val title = activeNotification?.notification?.extras?.getString("android.title") ?: ""
+            val title = (activeNotification?.notification?.extras?.getCharSequence(androidx.core.app.NotificationCompat.EXTRA_TITLE)
+                ?: activeNotification?.notification?.extras?.getCharSequence("android.title"))?.toString() ?: ""
             return when {
                 title.contains("quick mute", ignoreCase = true) -> "● Timer running"
                 title.contains("paused", ignoreCase = true) -> "● Schedule paused"

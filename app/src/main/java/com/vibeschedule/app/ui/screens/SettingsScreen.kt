@@ -1,5 +1,6 @@
 package com.vibeschedule.app.ui.screens
 
+import android.app.NotificationManager
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
 import com.vibeschedule.app.ui.theme.TextTertiary
+import com.vibeschedule.app.util.NotificationHelper
 
 const val PREFS_SETTINGS = "vibe_settings_prefs"
 const val PREF_NOTIF_HIGH_PRIORITY = "notif_high_priority"
@@ -112,6 +114,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     onCheckedChange = { value ->
                         highPriority = value
                         setNotifHighPriority(context, value)
+                        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        NotificationHelper.createNotificationChannel(context, nm)
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.Black,

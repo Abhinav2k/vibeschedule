@@ -1,65 +1,24 @@
-# 📳 VibeSchedule
+# 📳 VibeSchedule (React Web Edition)
 
-A modern, lightweight, and battery-friendly Android application built with **Jetpack Compose** and **Material 3** that automates switching your phone to **Vibration** or **Silent (DND)** mode on scheduled times and days.
+A modern, lightweight automated ringer and quiet hours scheduler featuring an obsidian liquid dark glass interface. Ported from the original Jetpack Compose Android application to **React 18 + Vite + Tailwind CSS**.
 
 ---
 
 ## ✨ Features
 
-- ⏰ **Automated Scheduling**: Set custom time slots (e.g., *Mon–Fri 09:00 to 17:00*) to automatically switch to **Vibrate** or **Silent**, and restore to **Normal Ring** when the slot ends.
-- ⚡ **Zero Battery Impact**: Uses Android's `AlarmManager.setExactAndAllowWhileIdle()` to sleep until the exact trigger second without background battery drain.
-- 🔁 **Survives Phone Reboots**: Registered `BootReceiver` automatically re-arms your active schedules whenever your phone restarts.
-- ⏱️ **Quick Mute (One-Tap)**: Need quiet right now? Tap 15 min, 30 min, 1 hour, or 2 hours for instant temporary vibration mode.
-- 🔔 **Discreet Status Notification**: Shows a quiet persistent notification while active with a 1-tap **"Revert to Normal"** button.
-
----
-
-## 🚀 How to Build the APK (Zero-Install Cloud Build)
-
-Since you don't need Android Studio installed, **GitHub Actions** compiles the `.apk` file for free in the cloud.
-
-### Step 1: Initialize Git and Commit
-Open your terminal in this directory and run:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit of VibeSchedule app"
-```
-
-### Step 2: Push to GitHub
-1. Go to [GitHub](https://github.com/new) and create a new repository (e.g., `vibeschedule`).
-2. Link your local project and push:
-```bash
-git branch -M main
-git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/vibeschedule.git
-git push -u origin main
-```
-
-### Step 3: Download Your APK!
-1. Go to your GitHub repository in your browser.
-2. Click on the **Actions** tab at the top.
-3. You will see the **"Build Android APK"** workflow running automatically.
-4. Once it finishes (takes ~2 minutes), click on the workflow run.
-5. Under **Artifacts** at the bottom of the page, click **`VibeSchedule-Debug-APK`** to download your zip containing `app-debug.apk`.
-6. Transfer or download it to your Android phone, tap to install, and you're good to go!
-
----
-
-## 📱 Permissions Used & Why
-
-| Permission | Reason |
-| :--- | :--- |
-| `SCHEDULE_EXACT_ALARM` | Ensures schedules trigger at the exact minute even when the device is in deep Doze mode. |
-| `ACCESS_NOTIFICATION_POLICY` | Android requires this to let apps change ringer modes (Normal / Vibrate / Silent). |
-| `RECEIVE_BOOT_COMPLETED` | Restores your scheduled alarms automatically when your phone restarts. |
-| `POST_NOTIFICATIONS` | Displays a status notification while active with a 1-tap "Revert to Normal" button. |
+- ⏰ **Automated Scheduling**: Set custom time slots (e.g., *Mon–Fri 09:00 to 17:00*) to automatically switch to **Vibrate** or **Silent (DND)**, and restore to **Normal Ring** when the slot ends. Supports overnight schedules crossing midnight.
+- ⏱️ **Quick Mute (One-Tap)**: Need quiet right now? Instant temporary vibration timers for 15 min, 30 min, 1 hour, or 2 hours with real-time countdown. Includes conflict detection and override warnings if a scheduled rule is already running.
+- ⏸️ **Pause Until Next :00**: Pause active rules or rules starting within 20 minutes until the top of the next hour with one tap.
+- 🔔 **Android Status Notification Simulation**: Interactive persistent status notification bar with real-time progress bar, remaining time, mode badge, **"End Now"**, and **"Skip to :00"** buttons.
+- 📱 **Android 2×1 Home Widget Preview**: Test the interactive widget with real-time running status ("● Schedule running", "Skip to :00", "End Now").
+- 💎 **Liquid Glass UI**: Faithful replication of the original Jetpack Compose obsidian glass theme, pulsing glowing indicator, pill switches, and bouncy spring tactile feedback.
+- 💾 **Local Persistence**: Schedule rules and notification settings persist across sessions in local storage.
 
 ---
 
 ## 🛠️ Tech Stack
-- **Language**: Kotlin 1.9.24
-- **UI**: Jetpack Compose (Material 3)
-- **Target SDK**: Android 14 (API 34)
-- **Min SDK**: Android 8.0 (API 26) - Works on 99%+ of Android phones
-- **Architecture**: MVVM with StateFlow & SharedPreferences persistence
+
+- **Framework**: React 18, Vite
+- **Styling**: Tailwind CSS v4, custom obsidian glass backdrop filters & gradients
+- **Icons**: Lucide React
+- **Language**: TypeScript

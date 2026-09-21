@@ -21,7 +21,7 @@ import java.util.Date
 import java.util.Locale
 
 object NotificationHelper {
-    const val CHANNEL_ID = "vibe_schedule_active_status_v4"
+    const val CHANNEL_ID = "vibe_schedule_active_status_v5"
     const val OLD_CHANNEL_ID = "vibe_schedule_channel"
     const val NOTIFICATION_ID = 8823
 
@@ -157,31 +157,22 @@ object NotificationHelper {
             setOnClickPendingIntent(R.id.notif_root, openAppPI)
         }
 
-        // 2. Expanded View (shows larger widget-styled cards with text labels)
-        val expandedView = RemoteViews(context.packageName, R.layout.notification_vibe_expanded).apply {
-            setTextViewText(R.id.notif_expanded_title, title)
-            setTextViewText(R.id.notif_expanded_badge, targetMode.displayName.uppercase(Locale.getDefault()))
-            setTextViewText(R.id.notif_expanded_time_text, timeContent)
-
-            if (remainingMinutes != null && totalMinutes != null && totalMinutes > 0) {
-                val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
-                setViewVisibility(R.id.notif_expanded_progress, View.VISIBLE)
-                setProgressBar(R.id.notif_expanded_progress, totalMinutes, elapsed, false)
-            } else {
-                setViewVisibility(R.id.notif_expanded_progress, View.GONE)
-            }
-
-            if (canSkip) {
-                setViewVisibility(R.id.notif_expanded_btn_skip, View.VISIBLE)
-                setOnClickPendingIntent(R.id.notif_expanded_btn_skip, skipPI)
-            } else {
-                setViewVisibility(R.id.notif_expanded_btn_skip, View.GONE)
-            }
-            setOnClickPendingIntent(R.id.notif_expanded_btn_cancel, revertPI)
-            setOnClickPendingIntent(R.id.notif_expanded_root, openAppPI)
-        }
-
         val highPriority = getNotifHighPriority(context)
+
+        // Lockscreen public version: exact same view with buttons visible
+        val publicNotification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(iconRes)
+            .setContentTitle(title)
+            .setContentText(timeContent)
+            .setSubText(targetMode.displayName)
+            .setCustomContentView(collapsedView)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
+            .setOngoing(true)
+            .setSilent(true)
+            .setContentIntent(openAppPI)
+            .build()
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(iconRes)
@@ -189,42 +180,40 @@ object NotificationHelper {
             .setContentText(timeContent)
             .setSubText(targetMode.displayName)
             .setCustomContentView(collapsedView)
-            .setCustomBigContentView(expandedView)
-            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            // Non-expandable: no big content view, no additional expandable actions shelf, no expandable style
             .setPriority(if (highPriority) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_DEFAULT)
-            .setVisibility(if (highPriority) NotificationCompat.VISIBILITY_PUBLIC else NotificationCompat.VISIBILITY_PRIVATE)
-            .setCategory(if (highPriority) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_STATUS)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPublicVersion(publicNotification)
+            .setCategory(if (highPriority) NotificationCompat.CATEGORY_NAVIGATION else NotificationCompat.CATEGORY_STATUS)
             .setOngoing(true)
+            .setLocalOnly(true)
             .setShowWhen(false)
             .setSilent(true)
             .setOnlyAlertOnce(true)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(openAppPI)
-            .addAction(R.drawable.ic_widget_cancel, "End Now", revertPI)
-
-        if (canSkip) {
-            builder.addAction(R.drawable.ic_widget_skip, "Skip to :00", skipPI)
-        }
-
-        val builtNotification = builder.build()
-        builder.setPublicVersion(builtNotification)
 
         notificationManager.notify(NOTIFICATION_ID, builder.build())
+        VibeWidgetProvider.updateAll(context)
     }
 
     fun dismissNotification(context: Context) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(NOTIFICATION_ID)
+        VibeWidgetProvider.updateAll(context)
     }
 
-    private fun createNotificationChannel(context: Context, notificationManager: NotificationManager) {
+    fun createNotificationChannel(context: Context, notificationManager: NotificationManager) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 notificationManager.deleteNotificationChannel(OLD_CHANNEL_ID)
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v2")
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v3")
+                notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v4")
             } catch (e: Exception) { }
 
-            val importance = if (getNotifHighPriority(context))
+            val highPriority = getNotifHighPriority(context)
+            val importance = if (highPriority)
                 NotificationManager.IMPORTANCE_HIGH
             else
                 NotificationManager.IMPORTANCE_DEFAULT
@@ -235,13 +224,15 @@ object NotificationHelper {
                 importance
             ).apply {
                 description = context.getString(R.string.channel_description)
-                lockscreenVisibility = if (getNotifHighPriority(context))
-                    NotificationCompat.VISIBILITY_PUBLIC
-                else
-                    NotificationCompat.VISIBILITY_PRIVATE
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 setSound(null, null)
                 enableVibration(false)
                 setShowBadge(false)
+                if (highPriority) {
+                    try {
+                        setBypassDnd(true)
+                    } catch (e: Exception) { }
+                }
             }
             notificationManager.createNotificationChannel(channel)
         }

@@ -11,6 +11,7 @@ import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.scheduler.AlarmScheduler
 import com.vibeschedule.app.util.NotificationHelper
 import com.vibeschedule.app.util.SoundModeHelper
+import com.vibeschedule.app.widget.WidgetRefresher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,6 +61,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var lastNotificationMinute: Int = -1
 
     init {
+        // Restore persistent quick mute and pause states
+        val persistedQm = repository.getQuickMuteUntil()
+        if (persistedQm != null && persistedQm > System.currentTimeMillis()) {
+            _quickMuteUntilMillis.value = persistedQm
+            _quickMuteRemainingSeconds.value = ((persistedQm - System.currentTimeMillis()) / 1000L).toInt()
+        }
+        val persistedPause = repository.getPauseUntil()
+        if (persistedPause != null && persistedPause > System.currentTimeMillis()) {
+            _pausedUntilMillis.value = persistedPause
+        }
+
         // Real-time ticker to evaluate status every 2 seconds
         viewModelScope.launch {
             while (isActive) {
@@ -128,6 +140,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val pausedUntil = _pausedUntilMillis.value
         if (pausedUntil != null && System.currentTimeMillis() >= pausedUntil) {
             _pausedUntilMillis.value = null
+            repository.setPauseUntil(null)
+            WidgetRefresher.refresh(getApplication())
             if (active != null) {
                 SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
                 NotificationHelper.showActiveRuleNotification(getApplication(), active)
@@ -143,6 +157,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (diffMillis <= 0) {
                 _quickMuteUntilMillis.value = null
                 _quickMuteRemainingSeconds.value = 0
+                repository.setQuickMuteUntil(null)
+                WidgetRefresher.refresh(getApplication())
                 // Restore sound mode
                 if (active != null) {
                     SoundModeHelper.applySoundMode(getApplication(), active.targetMode, audioManager)
@@ -207,6 +223,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val endMillis = System.currentTimeMillis() + (minutes * 60 * 1000L)
         _quickMuteUntilMillis.value = endMillis
         _quickMuteRemainingSeconds.value = minutes * 60
+        repository.setQuickMuteUntil(endMillis)
 
         try {
             SoundModeHelper.applySoundMode(getApplication(), SoundMode.VIBRATE, audioManager)
@@ -223,11 +240,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        WidgetRefresher.refresh(getApplication())
     }
 
     fun cancelQuickMute() {
         _quickMuteUntilMillis.value = null
         _quickMuteRemainingSeconds.value = 0
+        repository.setQuickMuteUntil(null)
         scheduler.cancelQuickMute()
 
         val active = _activeSchedule.value
@@ -242,6 +261,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        WidgetRefresher.refresh(getApplication())
     }
 
     fun pauseUntilNextOClock() {
@@ -254,6 +274,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         val targetMillis = nextHour.timeInMillis
         _pausedUntilMillis.value = targetMillis
+        repository.setPauseUntil(targetMillis)
         val active = _activeSchedule.value
         val label = active?.title ?: "Schedule"
 
@@ -270,10 +291,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        WidgetRefresher.refresh(getApplication())
     }
 
     fun cancelPause() {
         _pausedUntilMillis.value = null
+        repository.setPauseUntil(null)
         scheduler.cancelPauseEnd()
 
         val active = _activeSchedule.value
@@ -287,6 +310,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             NotificationHelper.dismissNotification(getApplication())
         }
+        WidgetRefresher.refresh(getApplication())
     }
 
     fun addSchedule(rule: ScheduleRule) {

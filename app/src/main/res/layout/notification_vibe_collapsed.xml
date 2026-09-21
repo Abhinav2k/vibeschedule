@@ -6,9 +6,9 @@
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="12dp"
-    android:paddingEnd="10dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp">
+    android:paddingEnd="8dp"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp">
 
     <!-- Left side: Mode Tag, Title, Time, and Shortened Progress Bar -->
     <LinearLayout
@@ -17,7 +17,7 @@
         android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="vertical"
-        android:paddingEnd="10dp">
+        android:paddingEnd="8dp">
 
         <!-- Top Header: Badge + Title -->
         <LinearLayout
@@ -75,7 +75,7 @@
             android:progressDrawable="@drawable/notif_progress_drawable" />
     </LinearLayout>
 
-    <!-- Right side: Generous, Prominent Control Buttons (Directly clickable!) -->
+    <!-- Right side: Generous, Prominent Control Buttons (Directly clickable, large like media player) -->
     <LinearLayout
         android:id="@+id/notif_actions_container"
         android:layout_width="wrap_content"
@@ -83,37 +83,37 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <!-- Button 1: Skip to :00 (Porcelain White, dark icon - 46dp x 46dp) -->
+        <!-- Button 1: Skip to :00 (Porcelain White, dark icon - 54dp x 54dp) -->
         <FrameLayout
             android:id="@+id/notif_btn_skip"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
             android:layout_marginEnd="8dp"
             android:background="@drawable/widget_btn_skip_minimal"
             android:clickable="true"
             android:focusable="true">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:layout_gravity="center"
                 android:contentDescription="Skip This Period"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_widget_skip" />
         </FrameLayout>
 
-        <!-- Button 2: Stop / Cancel (Obsidian Black, light icon - 46dp x 46dp) -->
+        <!-- Button 2: Stop / Cancel (Obsidian Black, light icon - 54dp x 54dp) -->
         <FrameLayout
             android:id="@+id/notif_btn_cancel"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
             android:background="@drawable/widget_btn_cancel_minimal"
             android:clickable="true"
             android:focusable="true">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:layout_gravity="center"
                 android:contentDescription="Cancel Schedule"
                 android:scaleType="fitCenter"

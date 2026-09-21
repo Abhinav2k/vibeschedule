@@ -90,6 +90,32 @@ class ScheduleRepository(context: Context) {
         saveSchedules(updated)
     }
 
+    fun setQuickMuteUntil(millis: Long?) {
+        if (millis == null) {
+            prefs.edit().remove("quick_mute_until").apply()
+        } else {
+            prefs.edit().putLong("quick_mute_until", millis).apply()
+        }
+    }
+
+    fun getQuickMuteUntil(): Long? {
+        val v = prefs.getLong("quick_mute_until", 0L)
+        return if (v > System.currentTimeMillis()) v else null
+    }
+
+    fun setPauseUntil(millis: Long?) {
+        if (millis == null) {
+            prefs.edit().remove("pause_until").apply()
+        } else {
+            prefs.edit().putLong("pause_until", millis).apply()
+        }
+    }
+
+    fun getPauseUntil(): Long? {
+        val v = prefs.getLong("pause_until", 0L)
+        return if (v > System.currentTimeMillis()) v else null
+    }
+
     private fun saveSchedules(list: List<ScheduleRule>) {
         _schedules.value = list
         val json = gson.toJson(list)
