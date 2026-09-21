@@ -85,6 +85,7 @@ class VibeWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_WIDGET_CANCEL_ACTIVE = "com.vibeschedule.app.ACTION_WIDGET_CANCEL_ACTIVE"
         const val ACTION_WIDGET_SKIP_PERIOD = "com.vibeschedule.app.ACTION_WIDGET_SKIP_PERIOD"
+        const val ACTION_WIDGET_SKIP_HOUR = "com.vibeschedule.app.ACTION_WIDGET_SKIP_PERIOD"
 
         private fun getActiveScheduleRule(context: Context): ScheduleRule? {
             val allSchedules = ScheduleRepository(context).getAllSchedules().filter { it.isEnabled }

@@ -107,7 +107,7 @@ object NotificationHelper {
 
         // Action 2: Skip to Next Hour
         val skipIntent = Intent(context, VibeWidgetProvider::class.java).apply {
-            action = VibeWidgetProvider.ACTION_WIDGET_SKIP_HOUR
+            action = VibeWidgetProvider.ACTION_WIDGET_SKIP_PERIOD
         }
         val skipPI = PendingIntent.getBroadcast(
             context,

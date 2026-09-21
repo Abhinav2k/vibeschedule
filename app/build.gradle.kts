@@ -1,3 +1,5 @@
+import com.android.build.gradle.api.BaseVariantOutput
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -13,6 +15,7 @@ android {
         targetSdk = 34
         versionCode = 21
         versionName = "1.4.17"
+        manifestPlaceholders["appName"] = "VibeSchedule"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -41,9 +44,8 @@ android {
 
     applicationVariants.all {
         val variant = this
-        variant.outputs.all {
-            val output = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output?.outputFileName = "VibeSchedule-v${variant.versionName}-${variant.buildType.name}.apk"
+        outputs.all {
+            (this as? BaseVariantOutput)?.outputFileName = "VibeSchedule-v${variant.versionName}-${variant.buildType.name}.apk"
         }
     }
 

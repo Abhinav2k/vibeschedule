@@ -34,10 +34,24 @@ jobs:
         id: prep
         run: |
           APK_FILE=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
-          APK_NAME=$(basename "$APK_FILE")
-          echo "Found APK: $APK_FILE (name: $APK_NAME)"
-          echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
-          ARTIFACT_NAME="${APK_NAME%.apk}"
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: No APK found in app/build/outputs/apk/debug"
+            find app/build/outputs -type f || true
+            exit 1
+          fi
+          VERSION=$(grep 'versionName = "' app/build.gradle.kts | head -n 1 | sed 's/.*"\(.*\)".*/\1/')
+          if [ -z "$VERSION" ]; then
+            VERSION="1.4.17"
+          fi
+          TARGET_NAME="VibeSchedule-v${VERSION}-debug.apk"
+          DIR=$(dirname "$APK_FILE")
+          TARGET_PATH="$DIR/$TARGET_NAME"
+          if [ "$APK_FILE" != "$TARGET_PATH" ]; then
+            cp "$APK_FILE" "$TARGET_PATH"
+          fi
+          echo "Prepared APK: $TARGET_PATH"
+          echo "apk_path=$TARGET_PATH" >> $GITHUB_OUTPUT
+          ARTIFACT_NAME="${TARGET_NAME%.apk}"
           echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
 
       - name: Upload APK Artifact
