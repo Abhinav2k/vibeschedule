@@ -94,14 +94,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     )
                     Column {
                         Text(
-                            text = "Lock Screen Media Card",
+                            text = "High Priority Notification",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Displays as a system media card on Android 16 & OriginOS 6 lock screen to stay outside collapsed notifications",
+                            text = "Maximizes lock screen visibility with large interactive action buttons",
                             fontSize = 12.sp,
                             color = TextSecondary,
                             lineHeight = 16.sp
@@ -128,7 +128,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         }
 
         Text(
-            text = "When enabled, active schedules and timers use a media session style so they appear in your lock screen's dedicated media widget instead of being hidden in collapsed notification counters.",
+            text = "When enabled, the active schedule notification is delivered with top-tier priority and public visibility so it stays visible on your lock screen with instant one-tap Skip and End controls.",
             fontSize = 11.sp,
             color = TextTertiary,
             lineHeight = 16.sp,
@@ -144,14 +144,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "VibeSchedule v1.4.16 (Debug)",
+                text = "VibeSchedule v1.4.17 (Debug)",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = TextSecondary
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Built for Android 16 & OriginOS 6",
+                text = "Optimized for Android 16 & OriginOS",
                 fontSize = 10.sp,
                 color = TextTertiary
             )
