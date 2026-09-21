@@ -22,9 +22,7 @@ import java.util.Calendar
 class VibeWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId)
-        }
+        for (appWidgetId in appWidgetIds) updateAppWidget(context, appWidgetManager, appWidgetId)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -38,58 +36,40 @@ class VibeWidgetProvider : AppWidgetProvider() {
                 val activeRule = getActiveScheduleRule(context)
                 val isPhoneMuted = isMutedOrVibrating(audioManager)
                 val isNotificationActive = isStatusNotificationShowing(notificationManager)
-
-                // If no active schedule, timer, or notification is running, do nothing
                 if (activeRule == null && !isPhoneMuted && !isNotificationActive) {
                     Toast.makeText(context, "No active schedule or timer", Toast.LENGTH_SHORT).show()
                     return
                 }
-
-                // Cancel running schedule / quick mute and restore Normal sound
                 try {
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     NotificationHelper.dismissNotification(context)
                     scheduler.cancelPauseEnd()
+                    scheduler.cancelQuickMute()
                     Toast.makeText(context, "Schedule Cancelled • Normal Ring", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                } catch (e: Exception) { e.printStackTrace() }
                 updateAll(context)
             }
 
             ACTION_WIDGET_SKIP_PERIOD -> {
                 val activeRule = getActiveScheduleRule(context)
                 val startingSoonRule = getStartingSoonRule(context)
-
-                // If no active schedule or upcoming schedule starting soon, do nothing
                 if (activeRule == null && startingSoonRule == null) {
                     Toast.makeText(context, "No active schedule to skip", Toast.LENGTH_SHORT).show()
                     return
                 }
-
-                // Skip / pause until next O'clock
                 val nextHour = Calendar.getInstance().apply {
                     add(Calendar.HOUR_OF_DAY, 1)
                     set(Calendar.MINUTE, 0)
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                 }
-
                 try {
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     scheduler.schedulePauseEnd(nextHour.timeInMillis)
                     val label = activeRule?.title ?: startingSoonRule?.title ?: "Schedule"
-                    NotificationHelper.showActiveStatusNotification(
-                        context = context,
-                        title = "$label Paused",
-                        targetMode = SoundMode.NORMAL,
-                        endMillis = nextHour.timeInMillis,
-                        canSkip = false
-                    )
+                    NotificationHelper.showActiveStatusNotification(context, "$label Paused", SoundMode.NORMAL, endMillis = nextHour.timeInMillis, canSkip = false)
                     Toast.makeText(context, "Skipped $label until next :00", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                } catch (e: Exception) { e.printStackTrace() }
                 updateAll(context)
             }
         }
@@ -100,92 +80,68 @@ class VibeWidgetProvider : AppWidgetProvider() {
         const val ACTION_WIDGET_SKIP_PERIOD = "com.vibeschedule.app.ACTION_WIDGET_SKIP_PERIOD"
 
         private fun getActiveScheduleRule(context: Context): ScheduleRule? {
-            val repo = ScheduleRepository(context)
-            val allSchedules = repo.getAllSchedules().filter { it.isEnabled }
+            val allSchedules = ScheduleRepository(context).getAllSchedules().filter { it.isEnabled }
             val now = Calendar.getInstance()
             val curDay = now.get(Calendar.DAY_OF_WEEK)
             val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-            val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
-            val yesterdayDay = yesterdayCal.get(Calendar.DAY_OF_WEEK)
-
+            val yesterdayDay = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.get(Calendar.DAY_OF_WEEK)
             return allSchedules.firstOrNull { rule ->
                 if (rule.daysOfWeek.isEmpty()) return@firstOrNull false
                 val startMin = rule.startHour * 60 + rule.startMinute
                 val endMin = rule.endHour * 60 + rule.endMinute
-
-                if (startMin < endMin) {
-                    rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin
-                } else {
-                    (rule.daysOfWeek.contains(curDay) && curMinutes >= startMin) ||
+                if (startMin < endMin) rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin
+                else (rule.daysOfWeek.contains(curDay) && curMinutes >= startMin) ||
                     (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
-                }
             }
         }
 
         private fun getStartingSoonRule(context: Context): ScheduleRule? {
-            val repo = ScheduleRepository(context)
-            val allSchedules = repo.getAllSchedules().filter { it.isEnabled }
+            val allSchedules = ScheduleRepository(context).getAllSchedules().filter { it.isEnabled }
             val now = Calendar.getInstance()
             val curDay = now.get(Calendar.DAY_OF_WEEK)
             val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-
-            for (rule in allSchedules) {
-                if (!rule.daysOfWeek.contains(curDay)) continue
-                val startMin = rule.startHour * 60 + rule.startMinute
-                val diff = startMin - curMinutes
-                if (diff in 1..25) {
-                    return rule
-                }
+            return allSchedules.firstOrNull { rule ->
+                rule.daysOfWeek.contains(curDay) && (rule.startHour * 60 + rule.startMinute - curMinutes) in 1..25
             }
-            return null
         }
 
-        private fun isMutedOrVibrating(audioManager: AudioManager): Boolean {
-            return audioManager.ringerMode == AudioManager.RINGER_MODE_VIBRATE ||
-                   audioManager.ringerMode == AudioManager.RINGER_MODE_SILENT
-        }
+        private fun isMutedOrVibrating(audioManager: AudioManager) =
+            audioManager.ringerMode == AudioManager.RINGER_MODE_VIBRATE || audioManager.ringerMode == AudioManager.RINGER_MODE_SILENT
 
-        private fun isStatusNotificationShowing(notificationManager: NotificationManager): Boolean {
-            return try {
-                notificationManager.activeNotifications.any { it.id == 8823 }
-            } catch (e: Exception) {
-                false
+        private fun isStatusNotificationShowing(notificationManager: NotificationManager) = try {
+            notificationManager.activeNotifications.any { it.id == NotificationHelper.NOTIFICATION_ID }
+        } catch (e: Exception) { false }
+
+        private fun statusText(context: Context): String {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val activeRule = getActiveScheduleRule(context)
+            if (activeRule != null) return "● Schedule running"
+            val activeNotification = try {
+                notificationManager.activeNotifications.firstOrNull { it.id == NotificationHelper.NOTIFICATION_ID }
+            } catch (e: Exception) { null }
+            val title = activeNotification?.notification?.extras?.getString("android.title") ?: ""
+            return when {
+                title.contains("quick mute", ignoreCase = true) -> "● Timer running"
+                title.contains("paused", ignoreCase = true) -> "● Schedule paused"
+                activeNotification != null -> "● Schedule running"
+                else -> "○ Nothing running"
             }
         }
 
         fun updateAll(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val thisWidget = ComponentName(context, VibeWidgetProvider::class.java)
-            val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
-            for (id in allWidgetIds) {
-                updateAppWidget(context, appWidgetManager, id)
-            }
+            val manager = AppWidgetManager.getInstance(context)
+            val component = ComponentName(context, VibeWidgetProvider::class.java)
+            manager.getAppWidgetIds(component).forEach { updateAppWidget(context, manager, it) }
         }
 
-        private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+        private fun updateAppWidget(context: Context, manager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_vibe_schedule)
-
-            // Button 1: Skip This Period (Pause until next :00)
-            val skipIntent = Intent(context, VibeWidgetProvider::class.java).apply {
-                action = ACTION_WIDGET_SKIP_PERIOD
-            }
-            val skipPendingIntent = PendingIntent.getBroadcast(
-                context, 202, skipIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.btn_widget_skip, skipPendingIntent)
-
-            // Button 2: Cancel Running Schedule (Restore Normal ring)
-            val cancelIntent = Intent(context, VibeWidgetProvider::class.java).apply {
-                action = ACTION_WIDGET_CANCEL_ACTIVE
-            }
-            val cancelPendingIntent = PendingIntent.getBroadcast(
-                context, 201, cancelIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.btn_widget_cancel, cancelPendingIntent)
-
-            appWidgetManager.updateAppWidget(appWidgetId, views)
+            views.setTextViewText(R.id.widget_status, statusText(context))
+            val skipIntent = Intent(context, VibeWidgetProvider::class.java).apply { action = ACTION_WIDGET_SKIP_PERIOD }
+            views.setOnClickPendingIntent(R.id.btn_widget_skip, PendingIntent.getBroadcast(context, 202, skipIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+            val cancelIntent = Intent(context, VibeWidgetProvider::class.java).apply { action = ACTION_WIDGET_CANCEL_ACTIVE }
+            views.setOnClickPendingIntent(R.id.btn_widget_cancel, PendingIntent.getBroadcast(context, 201, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+            manager.updateAppWidget(appWidgetId, views)
         }
     }
 }

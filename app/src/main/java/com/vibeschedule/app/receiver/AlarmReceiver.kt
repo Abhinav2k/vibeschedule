@@ -21,69 +21,47 @@ import com.vibeschedule.app.widget.VibeWidgetProvider
 import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
-
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
         when (action) {
             ACTION_SCHEDULE_START -> {
                 val ruleId = intent.getStringExtra(EXTRA_RULE_ID) ?: return
                 val ruleTitle = intent.getStringExtra(EXTRA_RULE_TITLE) ?: "Scheduled Event"
-                val targetModeStr = intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.VIBRATE.name
-                val targetMode = SoundMode.valueOf(targetModeStr)
-
+                val targetMode = try { SoundMode.valueOf(intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.VIBRATE.name) } catch (e: Exception) { SoundMode.VIBRATE }
                 SoundModeHelper.applySoundMode(context, targetMode, audioManager, notificationManager)
-
                 val repo = ScheduleRepository(context)
                 val rule = repo.getScheduleById(ruleId)
                 if (rule != null) {
                     NotificationHelper.showActiveRuleNotification(context, rule)
                     AlarmScheduler(context).scheduleRule(rule)
                 } else {
-                    NotificationHelper.showActiveStatusNotification(
-                        context = context,
-                        title = ruleTitle,
-                        targetMode = targetMode,
-                        canSkip = true
-                    )
+                    NotificationHelper.showActiveStatusNotification(context, ruleTitle, targetMode, canSkip = true)
                 }
                 VibeWidgetProvider.updateAll(context)
             }
-
             ACTION_SCHEDULE_END -> {
                 val repo = ScheduleRepository(context)
-                val allSchedules = repo.getAllSchedules()
-                val currentlyActive = findCurrentActiveRule(allSchedules)
-
+                val currentlyActive = findCurrentActiveRule(repo.getAllSchedules())
                 if (currentlyActive != null && currentlyActive.isEnabled) {
                     SoundModeHelper.applySoundMode(context, currentlyActive.targetMode, audioManager, notificationManager)
                     NotificationHelper.showActiveRuleNotification(context, currentlyActive)
                 } else {
-                    val revertModeStr = intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.NORMAL.name
-                    val revertMode = try { SoundMode.valueOf(revertModeStr) } catch (e: Exception) { SoundMode.NORMAL }
+                    val revertMode = try { SoundMode.valueOf(intent.getStringExtra(EXTRA_TARGET_MODE) ?: SoundMode.NORMAL.name) } catch (e: Exception) { SoundMode.NORMAL }
                     SoundModeHelper.applySoundMode(context, revertMode, audioManager, notificationManager)
                     NotificationHelper.dismissNotification(context)
                 }
-
-                val ruleId = intent.getStringExtra(EXTRA_RULE_ID)
-                if (ruleId != null) {
-                    repo.getScheduleById(ruleId)?.let { rule ->
-                        AlarmScheduler(context).scheduleRule(rule)
-                    }
-                }
+                intent.getStringExtra(EXTRA_RULE_ID)?.let { repo.getScheduleById(it)?.let { rule -> AlarmScheduler(context).scheduleRule(rule) } }
                 VibeWidgetProvider.updateAll(context)
             }
-
             ACTION_QUICK_MUTE_END -> {
                 SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                 NotificationHelper.dismissNotification(context)
+                VibeWidgetProvider.updateAll(context)
             }
-
             ACTION_PAUSE_END -> {
-                val repo = ScheduleRepository(context)
-                val activeRule = findCurrentActiveRule(repo.getAllSchedules())
+                val activeRule = findCurrentActiveRule(ScheduleRepository(context).getAllSchedules())
                 if (activeRule != null && activeRule.isEnabled) {
                     SoundModeHelper.applySoundMode(context, activeRule.targetMode, audioManager, notificationManager)
                     NotificationHelper.showActiveRuleNotification(context, activeRule)
@@ -100,21 +78,13 @@ class AlarmReceiver : BroadcastReceiver() {
         val now = Calendar.getInstance()
         val curDay = now.get(Calendar.DAY_OF_WEEK)
         val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-
-        val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
-        val yesterdayDay = yesterdayCal.get(Calendar.DAY_OF_WEEK)
-
+        val yesterdayDay = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.get(Calendar.DAY_OF_WEEK)
         return schedules.firstOrNull { rule ->
             if (!rule.isEnabled || rule.daysOfWeek.isEmpty()) return@firstOrNull false
             val startMin = rule.startHour * 60 + rule.startMinute
             val endMin = rule.endHour * 60 + rule.endMinute
-
-            if (startMin < endMin) {
-                rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin
-            } else {
-                (rule.daysOfWeek.contains(curDay) && curMinutes >= startMin) ||
-                (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
-            }
+            if (startMin < endMin) rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin
+            else (rule.daysOfWeek.contains(curDay) && curMinutes >= startMin) || (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
         }
     }
 
@@ -124,12 +94,8 @@ class AlarmReceiver : BroadcastReceiver() {
         const val ACTION_QUICK_MUTE_END = "com.vibeschedule.app.ACTION_QUICK_MUTE_END"
         const val ACTION_PAUSE_END = "com.vibeschedule.app.ACTION_PAUSE_END"
         const val ACTION_REVERT_NOW = "com.vibeschedule.app.ACTION_REVERT_NOW"
-
         const val EXTRA_RULE_ID = "EXTRA_RULE_ID"
         const val EXTRA_RULE_TITLE = "EXTRA_RULE_TITLE"
         const val EXTRA_TARGET_MODE = "EXTRA_TARGET_MODE"
-
-        private const val CHANNEL_ID = "vibe_schedule_channel"
-        private const val NOTIFICATION_ID = 8823
     }
 }

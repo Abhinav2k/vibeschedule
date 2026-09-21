@@ -5,52 +5,76 @@
     android:layout_height="match_parent"
     android:baselineAligned="false"
     android:gravity="center"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:paddingStart="0dp"
     android:paddingEnd="0dp"
     android:paddingTop="2dp"
     android:paddingBottom="2dp">
 
-    <!-- Big Button 1: Skip This Period (Square with rounded edges) -->
-    <FrameLayout
-        android:id="@+id/btn_widget_skip"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+    <TextView
+        android:id="@+id/widget_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingStart="8dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="4dp"
+        android:text="Idle"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginStart="0dp"
-        android:layout_marginEnd="5dp"
-        android:background="@drawable/widget_btn_skip_minimal"
-        android:clickable="true"
-        android:focusable="true">
+        android:gravity="center"
+        android:orientation="horizontal">
 
-        <ImageView
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:contentDescription="Skip This Period"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_widget_skip" />
-    </FrameLayout>
+        <!-- Big Button 1: Skip This Period -->
+        <FrameLayout
+            android:id="@+id/btn_widget_skip"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="0dp"
+            android:layout_marginEnd="5dp"
+            android:background="@drawable/widget_btn_skip_minimal"
+            android:clickable="true"
+            android:focusable="true">
 
-    <!-- Big Button 2: Cancel Active Schedule (Square with rounded edges) -->
-    <FrameLayout
-        android:id="@+id/btn_widget_cancel"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:layout_marginStart="5dp"
-        android:layout_marginEnd="0dp"
-        android:background="@drawable/widget_btn_cancel_minimal"
-        android:clickable="true"
-        android:focusable="true">
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center"
+                android:contentDescription="Skip This Period"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_widget_skip" />
+        </FrameLayout>
 
-        <ImageView
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:contentDescription="Cancel Schedule"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_widget_cancel" />
-    </FrameLayout>
+        <!-- Big Button 2: Cancel Active Schedule -->
+        <FrameLayout
+            android:id="@+id/btn_widget_cancel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="0dp"
+            android:background="@drawable/widget_btn_cancel_minimal"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center"
+                android:contentDescription="Cancel Schedule"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_widget_cancel" />
+        </FrameLayout>
+    </LinearLayout>
 
 </LinearLayout>
