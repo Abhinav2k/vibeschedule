@@ -94,14 +94,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     )
                     Column {
                         Text(
-                            text = "High Priority Notification",
+                            text = "Lock Screen Media Card",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Always show on lock screen, even when quiet notifications are hidden",
+                            text = "Displays as a system media card on Android 16 & OriginOS 6 lock screen to stay outside collapsed notifications",
                             fontSize = 12.sp,
                             color = TextSecondary,
                             lineHeight = 16.sp
@@ -128,11 +128,33 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         }
 
         Text(
-            text = "When enabled, the active schedule notification is shown as high-priority and will appear on your lock screen regardless of system notification settings. Disable for a quieter experience.",
+            text = "When enabled, active schedules and timers use a media session style so they appear in your lock screen's dedicated media widget instead of being hidden in collapsed notification counters.",
             fontSize = 11.sp,
             color = TextTertiary,
             lineHeight = 16.sp,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "VibeSchedule v1.4.16 (Debug)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextSecondary
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Built for Android 16 & OriginOS 6",
+                fontSize = 10.sp,
+                color = TextTertiary
+            )
+        }
     }
 }
