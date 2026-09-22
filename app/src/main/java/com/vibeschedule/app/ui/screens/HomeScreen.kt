@@ -114,7 +114,7 @@ fun HomeScreen(
             val qmSeconds = quickMuteRemainingSec % 60
             val qmTimeStr = String.format(Locale.getDefault(), "%02d:%02d", qmMinutes, qmSeconds)
             val endClockStr = if (quickMuteUntilMillis != null)
-                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(quickMuteUntilMillis!!)) else ""
+                SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(quickMuteUntilMillis!!)) else ""
 
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -255,7 +255,7 @@ fun HomeScreen(
                     Text(
                         text = when {
                             isPaused -> {
-                                val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(pausedUntilMillis!!))
+                                val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(pausedUntilMillis!!))
                                 "Ring restored until $timeStr"
                             }
                             isPauseEligible -> "Ring on until next hour"

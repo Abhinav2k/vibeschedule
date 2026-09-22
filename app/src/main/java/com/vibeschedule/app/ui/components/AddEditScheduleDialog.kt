@@ -85,8 +85,16 @@ fun AddEditScheduleDialog(
             { _, h, m -> onTimeSelected(h, m) },
             initialH,
             initialM,
-            true
+            false
         ).show()
+    }
+
+    fun updateHourAmPm(currentHour: Int, toAm: Boolean): Int {
+        return if (toAm) {
+            if (currentHour >= 12) currentHour - 12 else currentHour
+        } else {
+            if (currentHour < 12) currentHour + 12 else currentHour
+        }
     }
 
     AlertDialog(
@@ -131,24 +139,32 @@ fun AddEditScheduleDialog(
                 ) {
                     TimeBox(
                         label = "Starts",
-                        time = String.format(Locale.getDefault(), "%02d:%02d", startHour, startMinute),
-                        onClick = {
+                        hour = startHour,
+                        minute = startMinute,
+                        onTimeClick = {
                             showTimePicker(startHour, startMinute) { h, m ->
                                 startHour = h
                                 startMinute = m
                             }
+                        },
+                        onAmPmToggle = { toAm ->
+                            startHour = updateHourAmPm(startHour, toAm)
                         },
                         modifier = Modifier.weight(1f)
                     )
 
                     TimeBox(
                         label = "Ends",
-                        time = String.format(Locale.getDefault(), "%02d:%02d", endHour, endMinute),
-                        onClick = {
+                        hour = endHour,
+                        minute = endMinute,
+                        onTimeClick = {
                             showTimePicker(endHour, endMinute) { h, m ->
                                 endHour = h
                                 endMinute = m
                             }
+                        },
+                        onAmPmToggle = { toAm ->
+                            endHour = updateHourAmPm(endHour, toAm)
                         },
                         modifier = Modifier.weight(1f)
                     )
@@ -229,7 +245,7 @@ fun AddEditScheduleDialog(
                                 text = label,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.White else TextTertiary
+                                color = if (isSelected) Color.Black else TextTertiary
                             )
                         }
                     }
@@ -309,28 +325,110 @@ fun AddEditScheduleDialog(
 }
 
 @Composable
-private fun TimeBox(label: String, time: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun TimeBox(
+    label: String,
+    hour: Int,
+    minute: Int,
+    onTimeClick: () -> Unit,
+    onAmPmToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val displayHour = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else -> hour
+    }
+    val isAm = hour < 12
+    val timeFormatted = String.format(Locale.getDefault(), "%d:%02d", displayHour, minute)
+
     Surface(
-        onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = Color(0x18FFFFFF)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(label, fontSize = 11.sp, color = TextTertiary)
-            Spacer(modifier = Modifier.height(3.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.AccessTime,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = Color.White
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(time, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text(
+                text = label.uppercase(Locale.getDefault()),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextTertiary,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Surface(
+                onClick = onTimeClick,
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0x14FFFFFF),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(vertical = 7.dp, horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = "Select Time",
+                        modifier = Modifier.size(15.dp),
+                        tint = Color.White.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = timeFormatted,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(7.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0x18FFFFFF))
+                    .padding(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (isAm) Color.White else Color.Transparent)
+                        .clickable { onAmPmToggle(true) }
+                        .padding(vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "AM",
+                        fontSize = 11.sp,
+                        fontWeight = if (isAm) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isAm) Color.Black else TextSecondary
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (!isAm) Color.White else Color.Transparent)
+                        .clickable { onAmPmToggle(false) }
+                        .padding(vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "PM",
+                        fontSize = 11.sp,
+                        fontWeight = if (!isAm) FontWeight.Bold else FontWeight.Medium,
+                        color = if (!isAm) Color.Black else TextSecondary
+                    )
+                }
             }
         }
     }

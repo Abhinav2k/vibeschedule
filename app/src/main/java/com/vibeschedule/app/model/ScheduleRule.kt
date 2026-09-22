@@ -15,8 +15,8 @@ data class ScheduleRule(
     val revertMode: SoundMode = SoundMode.NORMAL,
     val isEnabled: Boolean = true
 ) {
-    fun formatStartTime(): String = String.format(Locale.getDefault(), "%02d:%02d", startHour, startMinute)
-    fun formatEndTime(): String = String.format(Locale.getDefault(), "%02d:%02d", endHour, endMinute)
+    fun formatStartTime(): String = formatTime(startHour, startMinute)
+    fun formatEndTime(): String = formatTime(endHour, endMinute)
 
     fun daysSummary(): String {
         if (daysOfWeek.size == 7) return "Everyday"
@@ -28,5 +28,17 @@ data class ScheduleRule(
             5 to "Thu", 6 to "Fri", 7 to "Sat"
         )
         return daysOfWeek.sorted().mapNotNull { dayNames[it] }.joinToString(", ")
+    }
+
+    companion object {
+        fun formatTime(hour: Int, minute: Int): String {
+            val displayHour = when {
+                hour == 0 -> 12
+                hour > 12 -> hour - 12
+                else -> hour
+            }
+            val amPm = if (hour < 12) "AM" else "PM"
+            return String.format(Locale.getDefault(), "%d:%02d %s", displayHour, minute, amPm)
+        }
     }
 }

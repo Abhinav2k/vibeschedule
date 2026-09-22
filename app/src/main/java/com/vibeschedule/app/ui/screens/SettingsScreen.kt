@@ -144,7 +144,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "VibeSchedule v1.4.17 (Debug)",
+                text = "VibeSchedule v1.4.18 (Debug)",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = TextSecondary
