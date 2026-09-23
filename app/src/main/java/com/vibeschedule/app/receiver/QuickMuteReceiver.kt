@@ -19,11 +19,18 @@ class QuickMuteReceiver : BroadcastReceiver() {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
             try {
-                ScheduleRepository(context).setQuickMuteUntil(null)
-                ScheduleRepository(context).setPauseUntil(null)
+                val repo = ScheduleRepository(context)
+                repo.setQuickMuteUntil(null)
+                repo.setPauseUntil(null)
                 SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
+                NotificationHelper.dismissNotification(context)
                 notificationManager.cancel(8823) // Dismiss status notification
                 VibeWidgetProvider.updateAll(context)
+                ScheduleRepository.notifyStateChanged()
+                val syncIntent = Intent(VibeWidgetProvider.ACTION_SYNC_APP_STATE).apply {
+                    setPackage(context.packageName)
+                }
+                context.sendBroadcast(syncIntent)
                 Log.d("QuickMuteReceiver", "Reverted ringer mode to NORMAL and restored volume")
             } catch (e: Exception) {
                 Log.e("QuickMuteReceiver", "Error reverting sound mode: ${e.message}")

@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,8 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -90,6 +91,7 @@ fun HomeScreen(
     val upcomingSchedule by viewModel.upcomingSchedule.collectAsState()
     val isPauseEligible by viewModel.isPauseEligible.collectAsState()
     val pausedUntilMillis by viewModel.pausedUntilMillis.collectAsState()
+    val hasDismissedSchedule by viewModel.hasDismissedSchedule.collectAsState()
     val quickMuteUntilMillis by viewModel.quickMuteUntilMillis.collectAsState()
     val quickMuteRemainingSec by viewModel.quickMuteRemainingSeconds.collectAsState()
 
@@ -163,15 +165,31 @@ fun HomeScreen(
                 // ── Active schedule: show big countdown first, end time below ──
 
                 // Pulsing live indicator (small, minimal — no label)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GlowingIndicator(isActive = true)
-                    Text(
-                        text = activeSchedule!!.title,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextSecondary,
-                        letterSpacing = 0.sp
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        GlowingIndicator(isActive = true)
+                        Text(
+                            text = activeSchedule!!.title,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondary,
+                            letterSpacing = 0.sp
+                        )
+                    }
+
+                    Button(
+                        onClick = { viewModel.stopActiveSchedule() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x22FFFFFF), contentColor = TextPrimary),
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Text("End Now", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -221,20 +239,68 @@ fun HomeScreen(
                 )
 
             } else {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GlowingIndicator(isActive = isPaused)
-                    Text(if (isPaused) "PAUSED" else "STANDBY", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = TextSecondary)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        GlowingIndicator(isActive = false)
+                        Text(
+                            text = when {
+                                isPaused -> "SKIPPED"
+                                hasDismissedSchedule -> "STOPPED"
+                                else -> "STANDBY"
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = TextSecondary
+                        )
+                    }
+
+                    if (isPaused || hasDismissedSchedule) {
+                        Button(
+                            onClick = { viewModel.restoreSchedule() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0x22FFFFFF), contentColor = TextPrimary),
+                            shape = CircleShape,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(11.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Restore", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                Text(text = if (isPaused) "Schedule Paused" else "No Active Schedule", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = TextPrimary, letterSpacing = (-0.5).sp)
+                Text(
+                    text = when {
+                        isPaused -> "Period Skipped"
+                        hasDismissedSchedule -> "Schedule Stopped"
+                        else -> "No Active Schedule"
+                    },
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    letterSpacing = (-0.5).sp
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = if (isPaused) "Ring restored until next :00" else "Normal Ring", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
+                Text(
+                    text = when {
+                        isPaused -> "Ring on until next :00"
+                        else -> "Normal Ring"
+                    },
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextSecondary
+                )
             }
         }
 
-        // 3. Pause Action Card
+        // 3. Skip Action Card
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -247,8 +313,9 @@ fun HomeScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isPaused) "Pause Active" else "Pause Next :00",
-                        fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                        text = if (isPaused) "Period Skipped" else "Skip Period",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = if (isPauseEligible || isPaused) TextPrimary else TextTertiary
                     )
                     Spacer(modifier = Modifier.height(2.dp))
@@ -256,10 +323,10 @@ fun HomeScreen(
                         text = when {
                             isPaused -> {
                                 val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(pausedUntilMillis!!))
-                                "Ring restored until $timeStr"
+                                "Until $timeStr"
                             }
-                            isPauseEligible -> "Ring on until next hour"
-                            else -> "Active or ≤20m before start"
+                            isPauseEligible -> "Skip until next :00"
+                            else -> "Available during schedule"
                         },
                         fontSize = 12.sp,
                         color = if (isPaused || isPauseEligible) TextSecondary else TextTertiary
@@ -270,17 +337,19 @@ fun HomeScreen(
 
                 if (isPaused) {
                     Button(
-                        onClick = { viewModel.cancelPause() },
+                        onClick = { viewModel.restoreSchedule() },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFFFFF), contentColor = Color.Black),
-                        shape = CircleShape
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.height(34.dp)
                     ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(13.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Resume", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Restore", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     }
                 } else {
                     Button(
-                        onClick = { viewModel.pauseUntilNextOClock() },
+                        onClick = { viewModel.skipPeriod() },
                         enabled = isPauseEligible,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFFFFFFF),
@@ -288,16 +357,18 @@ fun HomeScreen(
                             contentColor = Color.Black,
                             disabledContentColor = Color(0x35FFFFFF)
                         ),
-                        shape = CircleShape
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.height(34.dp)
                     ) {
                         if (!isPauseEligible) {
-                            Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(12.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                         } else {
-                            Icon(imageVector = Icons.Default.Pause, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Icon(imageVector = Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                         }
-                        Text("Pause", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("Skip", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     }
                 }
             }

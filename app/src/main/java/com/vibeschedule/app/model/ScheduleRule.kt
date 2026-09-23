@@ -40,5 +40,27 @@ data class ScheduleRule(
             val amPm = if (hour < 12) "AM" else "PM"
             return String.format(Locale.getDefault(), "%d:%02d %s", displayHour, minute, amPm)
         }
+
+        fun calculateRuleEndMillis(rule: ScheduleRule, now: java.util.Calendar = java.util.Calendar.getInstance()): Long {
+            val curMinutes = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
+            val startMin = rule.startHour * 60 + rule.startMinute
+            val endMin = rule.endHour * 60 + rule.endMinute
+
+            val endCal = (now.clone() as java.util.Calendar).apply {
+                set(java.util.Calendar.HOUR_OF_DAY, rule.endHour)
+                set(java.util.Calendar.MINUTE, rule.endMinute)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }
+
+            if (startMin >= endMin) {
+                if (curMinutes >= startMin) {
+                    endCal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                }
+            } else if (curMinutes >= endMin) {
+                endCal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+            }
+            return endCal.timeInMillis
+        }
     }
 }

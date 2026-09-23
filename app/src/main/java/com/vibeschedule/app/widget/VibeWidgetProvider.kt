@@ -44,12 +44,29 @@ class VibeWidgetProvider : AppWidgetProvider() {
                     return
                 }
                 try {
+                    if (activeRule != null) {
+                        val endMillis = ScheduleRule.calculateRuleEndMillis(activeRule)
+                        repo.dismissScheduleUntil(activeRule.id, endMillis)
+                        repo.setDismissedActiveUntil(endMillis)
+                    } else {
+                        val endCal = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, 23)
+                            set(Calendar.MINUTE, 59)
+                            set(Calendar.SECOND, 59)
+                        }
+                        repo.setDismissedActiveUntil(endCal.timeInMillis)
+                    }
                     repo.setQuickMuteUntil(null)
                     repo.setPauseUntil(null)
                     SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                     NotificationHelper.dismissNotification(context)
                     scheduler.cancelPauseEnd()
                     scheduler.cancelQuickMute()
+                    ScheduleRepository.notifyStateChanged()
+                    val syncIntent = Intent(ACTION_SYNC_APP_STATE).apply {
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(syncIntent)
                     Toast.makeText(context, "Cancelled • Normal Ring", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) { e.printStackTrace() }
                 updateAll(context)
@@ -75,6 +92,11 @@ class VibeWidgetProvider : AppWidgetProvider() {
                     scheduler.schedulePauseEnd(nextHour.timeInMillis)
                     val label = activeRule?.title ?: startingSoonRule?.title ?: "Schedule"
                     NotificationHelper.showActiveStatusNotification(context, "$label Paused", SoundMode.NORMAL, endMillis = nextHour.timeInMillis, canSkip = false)
+                    ScheduleRepository.notifyStateChanged()
+                    val syncIntent = Intent(ACTION_SYNC_APP_STATE).apply {
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(syncIntent)
                     Toast.makeText(context, "Skipped $label until next :00", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) { e.printStackTrace() }
                 updateAll(context)
@@ -86,15 +108,22 @@ class VibeWidgetProvider : AppWidgetProvider() {
         const val ACTION_WIDGET_CANCEL_ACTIVE = "com.vibeschedule.app.ACTION_WIDGET_CANCEL_ACTIVE"
         const val ACTION_WIDGET_SKIP_PERIOD = "com.vibeschedule.app.ACTION_WIDGET_SKIP_PERIOD"
         const val ACTION_WIDGET_SKIP_HOUR = "com.vibeschedule.app.ACTION_WIDGET_SKIP_PERIOD"
+        const val ACTION_SYNC_APP_STATE = "com.vibeschedule.app.ACTION_SYNC_APP_STATE"
 
         private fun getActiveScheduleRule(context: Context): ScheduleRule? {
-            val allSchedules = ScheduleRepository(context).getAllSchedules().filter { it.isEnabled }
+            val repo = ScheduleRepository(context)
+            val dismissedActiveUntil = repo.getDismissedActiveUntil()
+            if (dismissedActiveUntil != null && System.currentTimeMillis() < dismissedActiveUntil) {
+                return null
+            }
+            val allSchedules = repo.getAllSchedules().filter { it.isEnabled }
             val now = Calendar.getInstance()
             val curDay = now.get(Calendar.DAY_OF_WEEK)
             val curMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
             val yesterdayDay = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.get(Calendar.DAY_OF_WEEK)
             return allSchedules.firstOrNull { rule ->
                 if (rule.daysOfWeek.isEmpty()) return@firstOrNull false
+                if (repo.isScheduleDismissed(rule.id)) return@firstOrNull false
                 val startMin = rule.startHour * 60 + rule.startMinute
                 val endMin = rule.endHour * 60 + rule.endMinute
                 if (startMin < endMin) rule.daysOfWeek.contains(curDay) && curMinutes in startMin until endMin

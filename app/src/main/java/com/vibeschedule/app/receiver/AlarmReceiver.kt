@@ -60,6 +60,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 SoundModeHelper.applySoundMode(context, SoundMode.NORMAL, audioManager, notificationManager)
                 NotificationHelper.dismissNotification(context)
                 VibeWidgetProvider.updateAll(context)
+                ScheduleRepository.notifyStateChanged()
+                context.sendBroadcast(Intent(VibeWidgetProvider.ACTION_SYNC_APP_STATE).apply { setPackage(context.packageName) })
             }
             ACTION_PAUSE_END -> {
                 ScheduleRepository(context).setPauseUntil(null)
@@ -72,6 +74,8 @@ class AlarmReceiver : BroadcastReceiver() {
                     NotificationHelper.dismissNotification(context)
                 }
                 VibeWidgetProvider.updateAll(context)
+                ScheduleRepository.notifyStateChanged()
+                context.sendBroadcast(Intent(VibeWidgetProvider.ACTION_SYNC_APP_STATE).apply { setPackage(context.packageName) })
             }
         }
     }

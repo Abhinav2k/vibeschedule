@@ -1,5 +1,5 @@
 import React from 'react';
-import { Timer, X, Pause, Play, Lock } from 'lucide-react';
+import { Timer, X, SkipForward, RotateCcw, Lock } from 'lucide-react';
 import { ScheduleRule } from '../types';
 import { GlassCard } from '../components/GlassCard';
 import { GlowingIndicator } from '../components/GlowingIndicator';
@@ -150,26 +150,38 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
         ) : (
           <div>
-            <div className="flex items-center gap-2">
-              <GlowingIndicator isActive={isPaused} />
-              <span className="text-[11px] font-bold tracking-widest text-neutral-400 uppercase">
-                {isPaused ? 'Paused' : 'Standby'}
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GlowingIndicator isActive={false} />
+                <span className="text-[11px] font-bold tracking-widest text-neutral-400 uppercase">
+                  {isPaused ? 'Skipped' : 'Standby'}
+                </span>
+              </div>
+              {isPaused && (
+                <button
+                  type="button"
+                  onClick={onCancelPause}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium text-[11px] transition-all cursor-pointer active:scale-95"
+                >
+                  <RotateCcw className="w-3 h-3 text-neutral-300" />
+                  Restore
+                </button>
+              )}
             </div>
 
             <div className="mt-3">
               <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                {isPaused ? 'Schedule Paused' : 'No Active Schedule'}
+                {isPaused ? 'Period Skipped' : 'No Active Schedule'}
               </h2>
               <p className="text-sm font-medium text-neutral-300 mt-1">
-                {isPaused ? 'Ring restored until next :00' : 'Normal Ring'}
+                {isPaused ? 'Ring on until next :00' : 'Normal Ring'}
               </p>
             </div>
           </div>
         )}
       </GlassCard>
 
-      {/* 3. Pause Action Card */}
+      {/* 3. Skip Action Card */}
       <GlassCard
         className={`rounded-[24px] p-5 ${
           isPaused ? 'bg-white/[0.1] border-white/25' : 'bg-white/[0.05]'
@@ -182,7 +194,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 isPauseEligible || isPaused ? 'text-white' : 'text-neutral-500'
               }`}
             >
-              {isPaused ? 'Pause Active' : 'Pause Next :00'}
+              {isPaused ? 'Period Skipped' : 'Skip Period'}
             </h3>
             <p
               className={`text-xs mt-0.5 ${
@@ -190,10 +202,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               }`}
             >
               {isPaused
-                ? `Ring restored until ${pausedEndClockStr}`
+                ? `Until ${pausedEndClockStr}`
                 : isPauseEligible
-                ? 'Ring on until next hour'
-                : 'Active or ≤20m before start'}
+                ? 'Skip until next :00'
+                : 'Available during schedule'}
             </p>
           </div>
 
@@ -202,10 +214,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <button
                 type="button"
                 onClick={onCancelPause}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black font-bold text-xs hover:bg-neutral-200 transition-all active:scale-95 shadow-md"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-all active:scale-95 shadow-md cursor-pointer"
               >
-                <Play className="w-3.5 h-3.5 fill-black" />
-                Resume
+                <RotateCcw className="w-3.5 h-3.5 text-black" />
+                Restore
               </button>
             ) : (
               <button
@@ -221,9 +233,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 {!isPauseEligible ? (
                   <Lock className="w-3.5 h-3.5 text-neutral-500" />
                 ) : (
-                  <Pause className="w-3.5 h-3.5 text-black" />
+                  <SkipForward className="w-3.5 h-3.5 text-black" />
                 )}
-                Pause
+                Skip
               </button>
             )}
           </div>

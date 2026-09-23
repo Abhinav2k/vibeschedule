@@ -75,6 +75,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.evaluateStatus()
+    }
+
     @Composable
     private fun RequestNotificationPermission() {
         val context = LocalContext.current

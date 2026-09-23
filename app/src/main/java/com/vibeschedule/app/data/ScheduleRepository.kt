@@ -6,8 +6,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Calendar
 
@@ -19,8 +22,16 @@ class ScheduleRepository(context: Context) {
     private val _schedules = MutableStateFlow<List<ScheduleRule>>(emptyList())
     val schedules: StateFlow<List<ScheduleRule>> = _schedules.asStateFlow()
 
+    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "schedules_list") {
+            loadSchedules()
+        }
+        _globalStateEvents.tryEmit(Unit)
+    }
+
     init {
         loadSchedules()
+        prefs.registerOnSharedPreferenceChangeListener(prefListener)
     }
 
     private fun loadSchedules() {
@@ -116,9 +127,57 @@ class ScheduleRepository(context: Context) {
         return if (v > System.currentTimeMillis()) v else null
     }
 
+    fun dismissScheduleUntil(ruleId: String, untilMillis: Long) {
+        prefs.edit().putLong("dismissed_rule_$ruleId", untilMillis).apply()
+        _globalStateEvents.tryEmit(Unit)
+    }
+
+    fun isScheduleDismissed(ruleId: String): Boolean {
+        val v = prefs.getLong("dismissed_rule_$ruleId", 0L)
+        return v > System.currentTimeMillis()
+    }
+
+    fun clearScheduleDismissal(ruleId: String) {
+        prefs.edit().remove("dismissed_rule_$ruleId").apply()
+        _globalStateEvents.tryEmit(Unit)
+    }
+
+    fun setDismissedActiveUntil(millis: Long?) {
+        if (millis == null) {
+            prefs.edit().remove("dismissed_active_until").apply()
+        } else {
+            prefs.edit().putLong("dismissed_active_until", millis).apply()
+        }
+        _globalStateEvents.tryEmit(Unit)
+    }
+
+    fun getDismissedActiveUntil(): Long? {
+        val v = prefs.getLong("dismissed_active_until", 0L)
+        return if (v > System.currentTimeMillis()) v else null
+    }
+
+    fun clearAllDismissals() {
+        val editor = prefs.edit().remove("dismissed_active_until")
+        for (rule in _schedules.value) {
+            editor.remove("dismissed_rule_${rule.id}")
+        }
+        editor.apply()
+        _globalStateEvents.tryEmit(Unit)
+    }
+
     private fun saveSchedules(list: List<ScheduleRule>) {
         _schedules.value = list
         val json = gson.toJson(list)
         prefs.edit().putString("schedules_list", json).apply()
+        _globalStateEvents.tryEmit(Unit)
+    }
+
+    companion object {
+        private val _globalStateEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 10)
+        val globalStateEvents: SharedFlow<Unit> = _globalStateEvents.asSharedFlow()
+
+        fun notifyStateChanged() {
+            _globalStateEvents.tryEmit(Unit)
+        }
     }
 }

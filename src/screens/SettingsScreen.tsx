@@ -129,7 +129,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
       <div className="pt-4 text-center">
         <p className="text-[11px] text-neutral-400">
-          VibeSchedule v1.4.15 • Ported to React & Tailwind CSS
+          VibeSchedule v1.4.18 • Ported to React & Tailwind CSS
         </p>
       </div>
     </div>
