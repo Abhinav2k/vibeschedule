@@ -8,6 +8,7 @@ import android.media.AudioManager
 import android.util.Log
 import com.vibeschedule.app.data.ScheduleRepository
 import com.vibeschedule.app.model.SoundMode
+import com.vibeschedule.app.util.NotificationHelper
 import com.vibeschedule.app.util.SoundModeHelper
 import com.vibeschedule.app.widget.VibeWidgetProvider
 

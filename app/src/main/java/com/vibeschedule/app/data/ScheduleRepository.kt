@@ -156,6 +156,11 @@ class ScheduleRepository(context: Context) {
         return if (v > System.currentTimeMillis()) v else null
     }
 
+    fun clearDismissedActive() {
+        prefs.edit().remove("dismissed_active_until").apply()
+        _globalStateEvents.tryEmit(Unit)
+    }
+
     fun clearAllDismissals() {
         val editor = prefs.edit().remove("dismissed_active_until")
         for (rule in _schedules.value) {
