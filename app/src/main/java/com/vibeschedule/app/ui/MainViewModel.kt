@@ -39,6 +39,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val schedules: StateFlow<List<ScheduleRule>> = repository.schedules
 
+    private val _currentSoundMode = MutableStateFlow(SoundMode.fromRingerMode(audioManager.ringerMode))
+    val currentSoundMode: StateFlow<SoundMode> = _currentSoundMode.asStateFlow()
+
     private val _activeSchedule = MutableStateFlow<ScheduleRule?>(null)
     val activeSchedule: StateFlow<ScheduleRule?> = _activeSchedule.asStateFlow()
 
@@ -75,7 +78,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
-        // Restore persistent quick mute and pause states
         val persistedQm = repository.getQuickMuteUntil()
         if (persistedQm != null && persistedQm > System.currentTimeMillis()) {
             _quickMuteUntilMillis.value = persistedQm
@@ -86,7 +88,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _pausedUntilMillis.value = persistedPause
         }
 
-        // Register for immediate state updates from widgets and notifications
         try {
             val filter = IntentFilter(VibeWidgetProvider.ACTION_SYNC_APP_STATE)
             ContextCompat.registerReceiver(
@@ -99,14 +100,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             e.printStackTrace()
         }
 
-        // Collect global repository events immediately
         viewModelScope.launch {
             ScheduleRepository.globalStateEvents.collect {
                 evaluateStatus()
             }
         }
 
-        // Real-time ticker to evaluate status and count down every second
         viewModelScope.launch {
             while (isActive) {
                 evaluateStatus()
@@ -122,7 +121,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) { }
     }
 
+    private fun refreshCurrentSoundMode() {
+        _currentSoundMode.value = SoundMode.fromRingerMode(audioManager.ringerMode)
+    }
+
     fun evaluateStatus() {
+        refreshCurrentSoundMode()
         val allSchedules = repository.getAllSchedules().filter { it.isEnabled }
         val now = Calendar.getInstance()
         val currentDay = now.get(Calendar.DAY_OF_WEEK)
@@ -130,7 +134,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
         val yesterdayDay = yesterdayCal.get(Calendar.DAY_OF_WEEK)
 
-        // Sync repository Quick Mute state immediately
         val qmUntil = repository.getQuickMuteUntil()
         _quickMuteUntilMillis.value = qmUntil
         if (qmUntil != null) {
@@ -147,7 +150,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _quickMuteRemainingSeconds.value = 0
         }
 
-        // Sync repository Pause state immediately
         val pausedUntil = repository.getPauseUntil()
         if (pausedUntil != null && System.currentTimeMillis() >= pausedUntil) {
             _pausedUntilMillis.value = null
@@ -157,12 +159,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _pausedUntilMillis.value = pausedUntil
         }
 
-        // Check if active schedule was dismissed by user
         val dismissedUntil = repository.getDismissedActiveUntil()
         val isGlobalDismissed = dismissedUntil != null && System.currentTimeMillis() < dismissedUntil
         _hasDismissedSchedule.value = isGlobalDismissed
 
-        // 1. Check active schedule and calculate remaining minutes
         val active = if (isGlobalDismissed) {
             null
         } else {
@@ -176,7 +176,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     rule.daysOfWeek.contains(currentDay) && curMinutes in startMin until endMin
                 } else {
                     (rule.daysOfWeek.contains(currentDay) && curMinutes >= startMin) ||
-                    (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
+                        (rule.daysOfWeek.contains(yesterdayDay) && curMinutes < endMin)
                 }
             }
         }
@@ -196,7 +196,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _activeRemainingMinutes.value = null
         }
 
-        // 2. Check for upcoming schedule starting today
         var nearestUpcoming: Pair<ScheduleRule, Int>? = null
         for (rule in allSchedules) {
             if (!rule.daysOfWeek.contains(currentDay)) continue
@@ -210,11 +209,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         _upcomingSchedule.value = nearestUpcoming
 
-        // 3. Pause eligibility: Active right now OR starting within 20 minutes
         val isStartingSoon = (nearestUpcoming != null && nearestUpcoming.second <= 20)
         _isPauseEligible.value = (active != null || isStartingSoon)
 
-        // 4. Keep notification progress in sync while active
         if (_pausedUntilMillis.value == null && _quickMuteUntilMillis.value == null && active != null) {
             if (curMinutes != lastNotificationMinute) {
                 lastNotificationMinute = curMinutes
