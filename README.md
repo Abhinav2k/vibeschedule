@@ -94,9 +94,12 @@ To function as a system ringer scheduler, the app requires the following Android
 
 ## 🚀 Building the APK
 
-### Automated GitHub Actions Build (Recommended)
-Every push to GitHub triggers the `.github/workflows/build.yml` workflow, which compiles the APK and attaches it as a downloadable artifact:
-- **Artifact**: `VibeSchedule-v1.4.18-debug` (contains `VibeSchedule-v1.4.18-debug.apk`)
+### Automated GitHub Releases (Recommended)
+Every push to `main` or tag trigger automatically runs `.github/workflows/build.yml` to compile both signed Release and Debug APKs, generate SHA-256 checksums, and publish an official **GitHub Release**:
+- **Release APK**: `VibeSchedule-v1.4.18.apk` (Signed production build)
+- **Debug APK**: `VibeSchedule-v1.4.18-debug.apk` (Testing & logcat build)
+- **Direct Link**: Navigate to the **Releases** tab on GitHub to download the latest APK directly to your phone.
+- **Workflow Artifacts**: Also stored under the **Actions** tab for each workflow run.
 
 ### Local Build via Android Studio or Terminal
 Ensure **JDK 17** is installed and configured:

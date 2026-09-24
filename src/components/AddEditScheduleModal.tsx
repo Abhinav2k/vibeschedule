@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, X } from 'lucide-react';
+import { Clock, X, Vibrate, BellOff, Check } from 'lucide-react';
 import { ScheduleRule, SoundMode } from '../types';
 import { formatTime24 } from '../hooks/useVibeSchedule';
 
@@ -68,7 +68,7 @@ export const AddEditScheduleModal: React.FC<AddEditScheduleModalProps> = ({
     e.preventDefault();
     if (selectedDays.length === 0) return;
 
-    const resolvedTitle = title.trim() || 'Scheduled Mode';
+    const resolvedTitle = title.trim() || 'Quiet Hours';
     const rule: ScheduleRule = {
       id: initialRule?.id || `rule-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       title: resolvedTitle,
@@ -85,118 +85,116 @@ export const AddEditScheduleModal: React.FC<AddEditScheduleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
       <div
-        className="w-full max-w-md rounded-[26px] bg-[#12141a] border border-white/20 p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-md rounded-[28px] bg-[#292a2d] border border-[#45464f] p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto text-[#e3e2e6]"
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex items-center justify-between pb-3 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white tracking-tight">
-            {initialRule ? 'Edit Schedule' : 'New Schedule'}
+        <div className="flex items-center justify-between pb-3 border-b border-[#45464f]/40">
+          <h2 className="text-lg font-bold tracking-tight text-[#e3e2e6]">
+            {initialRule ? 'Edit schedule' : 'New schedule'}
           </h2>
           <button
             type="button"
             onClick={onDismiss}
-            className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-full text-[#c6c5d0] hover:text-white hover:bg-[#333438] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-5">
-          {/* Title */}
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-1.5">
-              Label
+            <label className="block text-xs font-semibold text-[#c6c5d0] uppercase tracking-wider mb-1.5">
+              Name
             </label>
             <input
               id="schedule-title-input"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Label (e.g. Work, Lecture)"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.08] border border-white/20 text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-colors"
+              placeholder="e.g., Work, Sleep"
+              className="w-full px-4 py-2.5 rounded-2xl bg-[#1e1f23] border border-[#8f909a] text-white placeholder-[#8f909a] focus:outline-hidden focus:border-[#bac3ff] transition-all text-sm"
             />
           </div>
 
-          {/* Time Picker boxes */}
+          {/* Time Picker Boxes */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3.5 rounded-xl bg-white/[0.06] border border-white/10 flex flex-col items-center">
-              <span className="text-xs text-neutral-400 font-medium">Starts</span>
+            <div className="p-3 rounded-2xl bg-[#1e1f23] border border-[#45464f] flex flex-col items-center">
+              <span className="text-xs text-[#c6c5d0]">Starts</span>
               <div className="flex items-center gap-2 mt-1">
-                <Clock className="w-4 h-4 text-white" />
+                <Clock className="w-4 h-4 text-[#bac3ff]" />
                 <input
                   id="schedule-start-time"
                   type="time"
                   value={formatTime24(startHour, startMinute)}
                   onChange={handleStartTimeChange}
-                  className="bg-transparent text-lg font-bold text-white focus:outline-none cursor-pointer"
+                  className="bg-transparent text-lg font-bold text-white focus:outline-hidden cursor-pointer"
                 />
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-white/[0.06] border border-white/10 flex flex-col items-center">
-              <span className="text-xs text-neutral-400 font-medium">Ends</span>
+            <div className="p-3 rounded-2xl bg-[#1e1f23] border border-[#45464f] flex flex-col items-center">
+              <span className="text-xs text-[#c6c5d0]">Ends</span>
               <div className="flex items-center gap-2 mt-1">
-                <Clock className="w-4 h-4 text-white" />
+                <Clock className="w-4 h-4 text-[#bac3ff]" />
                 <input
                   id="schedule-end-time"
                   type="time"
                   value={formatTime24(endHour, endMinute)}
                   onChange={handleEndTimeChange}
-                  className="bg-transparent text-lg font-bold text-white focus:outline-none cursor-pointer"
+                  className="bg-transparent text-lg font-bold text-white focus:outline-hidden cursor-pointer"
                 />
               </div>
             </div>
           </div>
 
-          {/* Repeat Header & Presets */}
+          {/* Repeat Presets */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-[#c6c5d0] uppercase tracking-wider">
                 Repeat
               </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDays(allDays)}
+                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium transition-all ${
+                    selectedDays.length === 7
+                      ? 'bg-[#bac3ff] text-[#08218a] font-bold'
+                      : 'bg-[#1e1f23] text-[#c6c5d0] hover:bg-[#333438]'
+                  }`}
+                >
+                  Daily
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDays(weekdays)}
+                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium transition-all ${
+                    selectedDays.length === 5 && selectedDays.every((d) => weekdays.includes(d))
+                      ? 'bg-[#bac3ff] text-[#08218a] font-bold'
+                      : 'bg-[#1e1f23] text-[#c6c5d0] hover:bg-[#333438]'
+                  }`}
+                >
+                  Weekdays
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDays(weekends)}
+                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium transition-all ${
+                    selectedDays.length === 2 && selectedDays.every((d) => weekends.includes(d))
+                      ? 'bg-[#bac3ff] text-[#08218a] font-bold'
+                      : 'bg-[#1e1f23] text-[#c6c5d0] hover:bg-[#333438]'
+                  }`}
+                >
+                  Weekends
+                </button>
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedDays(allDays)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                  selectedDays.length === 7
-                    ? 'bg-white/25 border border-white/50 text-white font-semibold'
-                    : 'bg-white/[0.08] text-neutral-300 hover:text-white'
-                }`}
-              >
-                Daily
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedDays(weekdays)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                  selectedDays.length === 5 && weekdays.every((d) => selectedDays.includes(d))
-                    ? 'bg-white/25 border border-white/50 text-white font-semibold'
-                    : 'bg-white/[0.08] text-neutral-300 hover:text-white'
-                }`}
-              >
-                Weekdays
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedDays(weekends)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                  selectedDays.length === 2 && weekends.every((d) => selectedDays.includes(d))
-                    ? 'bg-white/25 border border-white/50 text-white font-semibold'
-                    : 'bg-white/[0.08] text-neutral-300 hover:text-white'
-                }`}
-              >
-                Weekends
-              </button>
-            </div>
-
-            {/* Individual Day Circles */}
-            <div className="flex justify-between items-center mt-3">
+            {/* Individual Day Chips */}
+            <div className="flex items-center justify-between gap-1.5 pt-1">
               {daysList.map(({ dayInt, label }) => {
                 const isSelected = selectedDays.includes(dayInt);
                 return (
@@ -204,11 +202,14 @@ export const AddEditScheduleModal: React.FC<AddEditScheduleModalProps> = ({
                     key={dayInt}
                     type="button"
                     onClick={() => handleToggleDay(dayInt)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                      isSelected
-                        ? 'bg-white text-black shadow-sm'
-                        : 'bg-white/[0.08] text-neutral-400 hover:text-white'
-                    }`}
+                    className={`
+                      w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold transition-all
+                      ${
+                        isSelected
+                          ? 'bg-[#bac3ff] text-[#08218a]'
+                          : 'bg-[#1e1f23] text-[#c6c5d0] hover:bg-[#333438]'
+                      }
+                    `}
                   >
                     {label}
                   </button>
@@ -216,55 +217,59 @@ export const AddEditScheduleModal: React.FC<AddEditScheduleModalProps> = ({
               })}
             </div>
             {selectedDays.length === 0 && (
-              <p className="text-xs text-rose-400 mt-1.5">Select at least one day</p>
+              <p className="text-xs text-[#ffb4ab] mt-1.5">Select at least one day</p>
             )}
           </div>
 
-          {/* Sound Mode */}
+          {/* Sound Mode Selector */}
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-2">
-              Mode
+            <label className="block text-xs font-semibold text-[#c6c5d0] uppercase tracking-wider mb-2">
+              Sound Mode
             </label>
-            <div className="flex gap-3">
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-[#1e1f23] border border-[#45464f]">
               <button
                 type="button"
                 onClick={() => setTargetMode(SoundMode.VIBRATE)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold transition-all ${
                   targetMode === SoundMode.VIBRATE
-                    ? 'bg-white text-black shadow-md'
-                    : 'bg-white/[0.08] border border-white/10 text-neutral-300 hover:text-white'
+                    ? 'bg-[#bac3ff] text-[#08218a]'
+                    : 'text-[#c6c5d0] hover:text-white'
                 }`}
               >
-                Vibrate
+                <Vibrate className="w-4 h-4" />
+                <span>Vibrate</span>
+                {targetMode === SoundMode.VIBRATE && <Check className="w-3.5 h-3.5 stroke-[3]" />}
               </button>
+
               <button
                 type="button"
                 onClick={() => setTargetMode(SoundMode.SILENT)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold transition-all ${
                   targetMode === SoundMode.SILENT
-                    ? 'bg-white text-black shadow-md'
-                    : 'bg-white/[0.08] border border-white/10 text-neutral-300 hover:text-white'
+                    ? 'bg-[#e5bad8] text-[#45263f]'
+                    : 'text-[#c6c5d0] hover:text-white'
                 }`}
               >
-                Silent (DND)
+                <BellOff className="w-4 h-4" />
+                <span>Silent</span>
+                {targetMode === SoundMode.SILENT && <Check className="w-3.5 h-3.5 stroke-[3]" />}
               </button>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#45464f]/40">
             <button
               type="button"
               onClick={onDismiss}
-              className="px-4 py-2 rounded-full text-xs font-medium text-neutral-400 hover:text-white transition-colors"
+              className="px-4 py-2 rounded-full text-xs font-medium text-[#c6c5d0] hover:text-white transition-colors"
             >
               Cancel
             </button>
             <button
-              id="save-schedule-btn"
               type="submit"
               disabled={selectedDays.length === 0}
-              className="px-6 py-2 rounded-full bg-white text-black text-xs font-bold hover:bg-neutral-200 active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"
+              className="px-5 py-2 rounded-full bg-[#bac3ff] hover:bg-[#c9d0ff] text-[#08218a] text-xs font-bold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Save
             </button>

@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { Vibrate, Plus, Volume2, VolumeX, Smartphone } from 'lucide-react';
+import { Vibrate, Plus, Volume2, VolumeX } from 'lucide-react';
 import { useVibeSchedule } from './hooks/useVibeSchedule';
 import { ScheduleRule, SoundMode } from './types';
-import { LiquidTabSwitcher } from './components/LiquidTabSwitcher';
 import { HomeScreen } from './screens/HomeScreen';
 import { SchedulesScreen } from './screens/SchedulesScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { AddEditScheduleModal } from './components/AddEditScheduleModal';
-import { NotificationSimulator } from './components/NotificationSimulator';
 import { WidgetSimulatorModal } from './components/WidgetSimulatorModal';
-import { DEFAULT_SCHEDULES } from './data/initialData';
+import { MD3BottomNav } from './components/MD3BottomNav';
 
 export function App() {
   const {
@@ -47,7 +45,7 @@ export function App() {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage((current) => (current === msg ? null : current));
-    }, 2800);
+    }, 2400);
   };
 
   const handleOpenAdd = () => {
@@ -63,20 +61,17 @@ export function App() {
   const handleSaveRule = (rule: ScheduleRule) => {
     if (editingRule) {
       updateSchedule(rule);
-      triggerToast(`Updated '${rule.title}'`);
+      triggerToast('Schedule saved');
     } else {
       addSchedule(rule);
-      triggerToast(`Added '${rule.title}'`);
+      triggerToast('Schedule created');
     }
     setShowAddEditModal(false);
   };
 
   const handleDeleteRule = (id: string) => {
-    const target = schedules.find((s) => s.id === id);
     deleteSchedule(id);
-    if (target) {
-      triggerToast(`Deleted '${target.title}'`);
-    }
+    triggerToast('Schedule removed');
   };
 
   const handleResetDefaults = () => {
@@ -85,75 +80,50 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-neutral-100 flex flex-col selection:bg-white/20 selection:text-white relative font-sans">
-      {/* Background Obsidian Mesh Gradients */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[20%] w-[60vw] h-[50vh] rounded-full bg-white/[0.025] blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[10%] w-[50vw] h-[50vh] rounded-full bg-white/[0.015] blur-[140px]" />
-      </div>
-
+    <div className="min-h-screen bg-[#121316] text-[#e3e2e6] flex flex-col selection:bg-[#bac3ff]/30 selection:text-[#bac3ff] relative font-sans">
       {/* App Shell Container */}
-      <div className="relative z-10 flex-1 flex flex-col w-full max-w-lg mx-auto">
-        {/* Top App Bar */}
-        <header className="sticky top-0 z-30 pt-3 pb-2 px-4 backdrop-blur-xl bg-black/70 border-b border-white/[0.06]">
-          <div className="flex items-center justify-between gap-2">
-            {/* Left: App Logo Badge */}
-            <div className="flex items-center gap-2">
+      <div className="relative z-10 flex-1 flex flex-col w-full max-w-lg mx-auto pb-16">
+        {/* Clean Material 3 Top App Bar */}
+        <header className="sticky top-0 z-30 pt-3 pb-3 px-4 bg-[#121316]/95 backdrop-blur-md border-b border-[#45464f]/30">
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: App Brand & Icon */}
+            <div className="flex items-center gap-2.5">
               <div
-                className="w-9 h-9 rounded-full bg-white/[0.1] border border-white/[0.2] flex items-center justify-center shadow-xs"
-                title="VibeSchedule"
+                className="w-10 h-10 rounded-full bg-[#283b9f] text-[#dee0ff] flex items-center justify-center shadow-xs"
               >
-                <Vibrate className="w-4 h-4 text-white" />
+                <Vibrate className="w-5 h-5" />
               </div>
-              <span className="hidden sm:inline text-sm font-bold text-white tracking-tight">
+              <h1 className="text-base font-bold text-[#e3e2e6] tracking-tight">
                 VibeSchedule
+              </h1>
+            </div>
+
+            {/* Right: Sound Mode Chip */}
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                currentSoundMode === SoundMode.NORMAL
+                  ? 'bg-[#1e1f23] text-emerald-400 border border-emerald-500/30'
+                  : 'bg-[#434659] text-[#dfe1f9] border border-[#bac3ff]/40 shadow-xs'
+              }`}
+            >
+              {currentSoundMode === SoundMode.NORMAL ? (
+                <Volume2 className="w-3.5 h-3.5" />
+              ) : (
+                <VolumeX className="w-3.5 h-3.5 text-[#bac3ff]" />
+              )}
+              <span>
+                {currentSoundMode === SoundMode.VIBRATE
+                  ? 'Vibrate'
+                  : currentSoundMode === SoundMode.SILENT
+                  ? 'Silent'
+                  : 'Normal'}
               </span>
-            </div>
-
-            {/* Center: Liquid Tab Switcher */}
-            <div className="flex justify-center flex-1 sm:flex-none">
-              <LiquidTabSwitcher
-                selectedTab={selectedTab}
-                onTabSelected={(idx) => setSelectedTab(idx)}
-                tabs={['Home', 'Schedules', 'Settings']}
-              />
-            </div>
-
-            {/* Right: Sound Mode & Widget simulator shortcut */}
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setShowWidgetModal(true)}
-                className="p-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-neutral-300 hover:text-white transition-all text-xs flex items-center gap-1"
-                title="Open Android Widget Preview"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span className="hidden md:inline text-[11px] font-medium pr-1">Widget</span>
-              </button>
-
-              <div
-                className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/[0.08] border border-white/15 text-[10px] font-bold text-neutral-200 uppercase tracking-wider"
-                title={`Current ringer status: ${currentSoundMode}`}
-              >
-                {currentSoundMode === SoundMode.NORMAL ? (
-                  <Volume2 className="w-3 h-3 text-emerald-400" />
-                ) : (
-                  <VolumeX className="w-3 h-3 text-white" />
-                )}
-                <span className="hidden xs:inline">
-                  {currentSoundMode === SoundMode.VIBRATE
-                    ? 'VIBE'
-                    : currentSoundMode === SoundMode.SILENT
-                    ? 'SILENT'
-                    : 'RING'}
-                </span>
-              </div>
             </div>
           </div>
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 w-full pt-2">
+        <main className="flex-1 w-full pt-3">
           {selectedTab === 0 && (
             <HomeScreen
               activeSchedule={activeSchedule}
@@ -166,7 +136,6 @@ export function App() {
               onCancelQuickMute={cancelQuickMute}
               onPauseUntilNextOClock={pauseUntilNextOClock}
               onCancelPause={cancelPause}
-              onNavigateToSchedules={() => setSelectedTab(1)}
             />
           )}
 
@@ -197,30 +166,6 @@ export function App() {
           )}
         </main>
 
-        {/* Android Lock-Screen Notification Simulator (Active status banner) */}
-        <footer className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none">
-          <div className="pointer-events-auto">
-            <NotificationSimulator
-              activeSchedule={activeSchedule}
-              activeRemainingMinutes={activeRemainingMinutes}
-              quickMuteRemainingSeconds={quickMuteRemainingSeconds}
-              quickMuteUntilMillis={quickMuteUntilMillis}
-              pausedUntilMillis={pausedUntilMillis}
-              onCancelActive={() => {
-                if (quickMuteUntilMillis !== null) cancelQuickMute();
-                else if (pausedUntilMillis !== null) cancelPause();
-                else if (activeSchedule) pauseUntilNextOClock();
-                triggerToast('Reverted to Normal Ring');
-              }}
-              onSkipPeriod={() => {
-                pauseUntilNextOClock();
-                triggerToast('Skipped until next :00');
-              }}
-              highPriority={settings.notifHighPriority}
-            />
-          </div>
-        </footer>
-
         {/* Floating Action Button (FAB) on Schedules tab */}
         {selectedTab === 1 && (
           <button
@@ -228,15 +173,25 @@ export function App() {
             type="button"
             onClick={handleOpenAdd}
             aria-label="Add Schedule"
-            className="fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full bg-white text-black flex items-center justify-center shadow-[0_8px_30px_rgba(255,255,255,0.25)] hover:bg-neutral-200 active:scale-95 transition-all duration-150"
+            className="fixed bottom-20 right-6 z-40 w-14 h-14 rounded-2xl bg-[#bac3ff] text-[#08218a] flex items-center justify-center shadow-lg hover:bg-[#c9d0ff] active:scale-95 transition-all duration-150 cursor-pointer"
           >
             <Plus className="w-7 h-7 stroke-[2.5]" />
           </button>
         )}
 
-        {/* Toast feedback */}
+        {/* Material 3 Bottom Navigation Bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-30">
+          <div className="max-w-lg mx-auto">
+            <MD3BottomNav
+              selectedTab={selectedTab}
+              onTabSelected={(idx) => setSelectedTab(idx)}
+            />
+          </div>
+        </div>
+
+        {/* Toast Feedback */}
         {toastMessage && (
-          <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-neutral-900/95 border border-white/20 text-xs font-semibold text-white shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-3 duration-200">
+          <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-[#292a2d] border border-[#45464f] text-xs font-semibold text-[#e3e2e6] shadow-xl animate-in fade-in duration-150">
             {toastMessage}
           </div>
         )}
@@ -250,26 +205,29 @@ export function App() {
           />
         )}
 
-        {/* Widget preview modal */}
-        <WidgetSimulatorModal
-          isOpen={showWidgetModal}
-          onClose={() => setShowWidgetModal(false)}
-          activeSchedule={activeSchedule}
-          quickMuteUntilMillis={quickMuteUntilMillis}
-          pausedUntilMillis={pausedUntilMillis}
-          onCancelActive={() => {
-            if (quickMuteUntilMillis !== null) cancelQuickMute();
-            else if (pausedUntilMillis !== null) cancelPause();
-            else if (activeSchedule) pauseUntilNextOClock();
-            triggerToast('Schedule Cancelled • Normal Ring');
-          }}
-          onSkipPeriod={() => {
-            pauseUntilNextOClock();
-            triggerToast('Skipped schedule until next :00');
-          }}
-        />
+        {/* Widget Preview Modal */}
+        {showWidgetModal && (
+          <WidgetSimulatorModal
+            isOpen={showWidgetModal}
+            onClose={() => setShowWidgetModal(false)}
+            activeSchedule={activeSchedule}
+            quickMuteUntilMillis={quickMuteUntilMillis}
+            pausedUntilMillis={pausedUntilMillis}
+            onCancelActive={() => {
+              if (quickMuteUntilMillis !== null) cancelQuickMute();
+              else if (pausedUntilMillis !== null) cancelPause();
+              else if (activeSchedule) pauseUntilNextOClock();
+              triggerToast('Normal ring restored');
+            }}
+            onSkipPeriod={() => {
+              pauseUntilNextOClock();
+              triggerToast('Period skipped');
+            }}
+          />
+        )}
       </div>
     </div>
   );
 }
+
 export default App;

@@ -3,74 +3,122 @@ package com.vibeschedule.app.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// ─── Neutral Monochrome Palette ───────────────────────────────────────────────
-val DeepDark        = Color(0xFF000000)
-val SurfaceDark     = Color(0xFF0D0D0D)
+// ─── Material Design 3 Official Tonal Palette (Deep Slate / Material You Dark) ─
+val md_theme_dark_primary               = Color(0xFFBAC3FF)
+val md_theme_dark_onPrimary             = Color(0xFF08218A)
+val md_theme_dark_primaryContainer      = Color(0xFF283B9F)
+val md_theme_dark_onPrimaryContainer    = Color(0xFFDEE0FF)
+
+val md_theme_dark_secondary             = Color(0xFFC3C5DD)
+val md_theme_dark_onSecondary           = Color(0xFF2D3042)
+val md_theme_dark_secondaryContainer    = Color(0xFF434659)
+val md_theme_dark_onSecondaryContainer  = Color(0xFFDFE1F9)
+
+val md_theme_dark_tertiary              = Color(0xFFE5BAD8)
+val md_theme_dark_onTertiary            = Color(0xFF45263F)
+val md_theme_dark_tertiaryContainer     = Color(0xFF5D3C56)
+val md_theme_dark_onTertiaryContainer   = Color(0xFFFFD7F3)
+
+val md_theme_dark_error                 = Color(0xFFFFB4AB)
+val md_theme_dark_onError               = Color(0xFF690005)
+val md_theme_dark_errorContainer        = Color(0xFF93000A)
+val md_theme_dark_onErrorContainer      = Color(0xFFFFDAD6)
+
+val md_theme_dark_background            = Color(0xFF121316)
+val md_theme_dark_onBackground          = Color(0xFFE3E2E6)
+val md_theme_dark_surface               = Color(0xFF121316)
+val md_theme_dark_onSurface             = Color(0xFFE3E2E6)
+
+val md_theme_dark_surfaceVariant        = Color(0xFF45464F)
+val md_theme_dark_onSurfaceVariant      = Color(0xFFC6C5D0)
+val md_theme_dark_outline               = Color(0xFF8F909A)
+val md_theme_dark_outlineVariant        = Color(0xFF45464F)
+
+val md_theme_dark_surfaceContainerLowest  = Color(0xFF0D0E11)
+val md_theme_dark_surfaceContainerLow     = Color(0xFF1A1B1E)
+val md_theme_dark_surfaceContainer        = Color(0xFF1E1F23)
+val md_theme_dark_surfaceContainerHigh   = Color(0xFF292A2D)
+val md_theme_dark_surfaceContainerHighest= Color(0xFF333438)
+
+// ─── MD3 Light Palette ──────────────────────────────────────────────────────────
+val md_theme_light_primary              = Color(0xFF4155BF)
+val md_theme_light_onPrimary            = Color(0xFFFFFFFF)
+val md_theme_light_primaryContainer     = Color(0xFFDEE0FF)
+val md_theme_light_onPrimaryContainer   = Color(0xFF001159)
+
+val md_theme_light_secondary            = Color(0xFF5B5D72)
+val md_theme_light_onSecondary          = Color(0xFFFFFFFF)
+val md_theme_light_secondaryContainer   = Color(0xFFDFE1F9)
+val md_theme_light_onSecondaryContainer = Color(0xFF171B2C)
+
+val md_theme_light_tertiary             = Color(0xFF75546F)
+val md_theme_light_onTertiary           = Color(0xFFFFFFFF)
+val md_theme_light_tertiaryContainer    = Color(0xFFFFD7F3)
+val md_theme_light_onTertiaryContainer  = Color(0xFF2C1229)
+
+val md_theme_light_surface              = Color(0xFFFEF7FF)
+val md_theme_light_onSurface            = Color(0xFF1C1B1F)
+val md_theme_light_surfaceContainer     = Color(0xFFF3EDF7)
+val md_theme_light_outlineVariant       = Color(0xFFCAC4D0)
+
+// ─── Legacy & Backwards Compatible Aliases ────────────────────────────────────
+val DeepDark        = md_theme_dark_background
+val SurfaceDark     = md_theme_dark_surfaceContainer
 val DeepDarkBg      = DeepDark
 val DarkNavyBg      = SurfaceDark
 
-// Glass layers (white-on-black translucency)
-val SurfaceGlass         = Color(0x14FFFFFF)
-val SurfaceGlassElevated = Color(0x1FFFFFFF)
-val SurfaceGlassActive   = Color(0x2AFFFFFF)
+val SurfaceGlass         = md_theme_dark_surfaceContainer
+val SurfaceGlassElevated = md_theme_dark_surfaceContainerHigh
+val SurfaceGlassActive   = md_theme_dark_primaryContainer
 
-// Accent: pure white & grays (replaces purple/teal/red/amber)
 val AccentWhite      = Color(0xFFFFFFFF)
-val AccentWhiteGlow  = Color(0x55FFFFFF)
-val AccentGray       = Color(0xFFAAAAAA)
-val AccentDarkGray   = Color(0xFF555555)
+val AccentWhiteGlow  = Color(0x33BAC3FF)
+val AccentGray       = md_theme_dark_onSurfaceVariant
+val AccentDarkGray   = md_theme_dark_outline
 
-// Keep legacy names pointing to monochrome equivalents so nothing breaks
-val AccentPurple     = AccentWhite
+val AccentPurple     = md_theme_dark_primary
 val AccentPurpleGlow = AccentWhiteGlow
-val AccentTeal       = AccentWhite
+val AccentTeal       = md_theme_dark_secondary
 val AccentTealGlow   = AccentWhiteGlow
-val AccentAmber      = AccentGray
-val AccentRed        = AccentGray
+val AccentAmber      = md_theme_dark_tertiary
+val AccentRed        = md_theme_dark_error
 
-// Text
-val TextPrimary   = Color(0xFFF5F5F5)
-val TextSecondary = Color(0xFF888888)
-val TextTertiary  = Color(0xFF444444)
+val TextPrimary   = md_theme_dark_onSurface
+val TextSecondary = md_theme_dark_onSurfaceVariant
+val TextTertiary  = md_theme_dark_outline
 
-// Border brushes — white glass highlights only
 val GlassBorderBrush = Brush.linearGradient(
     listOf(
-        Color(0x38FFFFFF),
-        Color(0x12FFFFFF),
-        Color(0x06FFFFFF),
-        Color(0x22FFFFFF)
+        md_theme_dark_outlineVariant.copy(alpha = 0.6f),
+        md_theme_dark_outlineVariant.copy(alpha = 0.2f)
     )
 )
 
 val ActiveScheduleBorderBrush = Brush.linearGradient(
     listOf(
-        Color(0x55FFFFFF),
-        Color(0x20FFFFFF),
-        Color(0x08FFFFFF)
+        md_theme_dark_primary.copy(alpha = 0.8f),
+        md_theme_dark_primaryContainer.copy(alpha = 0.4f)
     )
 )
 
 val LiquidGlassActiveBrush = Brush.linearGradient(
     listOf(
-        Color(0x22FFFFFF),
-        Color(0x10FFFFFF)
+        md_theme_dark_surfaceContainerHigh,
+        md_theme_dark_surfaceContainer
     )
 )
 
-// Background: Deep obsidian black
 val BackgroundMeshBrush = Brush.verticalGradient(
     listOf(
-        Color(0xFF111111),
-        Color(0xFF060606),
-        Color(0xFF000000)
+        Color(0xFF16171B),
+        Color(0xFF0F1013),
+        Color(0xFF0B0C0E)
     )
 )
 
-// Purple80 etc — kept to avoid Material3 compile errors
-val Purple80      = Color(0xFFE0E0E0)
-val PurpleGrey80  = Color(0xFFCCCCCC)
-val Pink80        = Color(0xFFBBBBBB)
-val Purple40      = Color(0xFF666666)
-val PurpleGrey40  = Color(0xFF555555)
-val Pink40        = Color(0xFF444444)
+val Purple80      = md_theme_dark_primary
+val PurpleGrey80  = md_theme_dark_secondary
+val Pink80        = md_theme_dark_tertiary
+val Purple40      = md_theme_light_primary
+val PurpleGrey40  = md_theme_light_secondary
+val Pink40        = md_theme_light_tertiary

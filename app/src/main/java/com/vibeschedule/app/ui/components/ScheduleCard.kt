@@ -1,7 +1,6 @@
 package com.vibeschedule.app.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,15 +14,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.NotificationsOff
-import androidx.compose.material.icons.filled.Vibration
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.Vibration
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -35,15 +40,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
-import com.vibeschedule.app.ui.theme.TextPrimary
-import com.vibeschedule.app.ui.theme.TextSecondary
-import com.vibeschedule.app.ui.theme.TextTertiary
 import java.util.Calendar
 
 @Composable
@@ -56,88 +56,154 @@ fun ScheduleCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    GlassCard(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 5.dp),
-        shape = RoundedCornerShape(22.dp),
-        backgroundColor = if (rule.isEnabled) Color(0x15FFFFFF) else Color(0x08FFFFFF)
+    ElevatedCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = if (rule.isEnabled)
+                MaterialTheme.colorScheme.surfaceContainer
+            else
+                MaterialTheme.colorScheme.surfaceContainerLowest
+        ),
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = if (rule.isEnabled) 2.dp else 0.dp
+        )
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = rule.title,
-                    fontSize = 17.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.2).sp,
-                    color = if (rule.isEnabled) TextPrimary else TextTertiary
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "${rule.formatStartTime()} — ${rule.formatEndTime()}",
-                    fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp,
-                    color = if (rule.isEnabled) TextPrimary else TextTertiary
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = rule.isEnabled,
-                    onCheckedChange = onToggle,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.Black,
-                        checkedTrackColor = Color.White,
-                        uncheckedTrackColor = Color(0x20FFFFFF),
-                        uncheckedThumbColor = Color(0x66FFFFFF)
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = rule.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (rule.isEnabled)
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                     )
-                )
-                Box {
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(imageVector = Icons.Default.MoreHoriz, contentDescription = "Options", tint = TextSecondary)
-                    }
-                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Edit") },
-                            onClick = { menuExpanded = false; onEdit() },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete", color = Color(0xFFFF6B6B)) },
-                            onClick = { menuExpanded = false; onDelete() },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFFF6B6B), modifier = Modifier.size(18.dp)) }
-                        )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${rule.formatStartTime()} — ${rule.formatEndTime()}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (rule.isEnabled)
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Switch(
+                        checked = rule.isEnabled,
+                        onCheckedChange = onToggle,
+                        thumbContent = if (rule.isEnabled) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        } else null
+                    )
+
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Options",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onEdit()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onDelete()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Mode pill — monochrome
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(0x20FFFFFF))
-                    .border(0.5.dp, Color(0x30FFFFFF), CircleShape)
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = if (rule.targetMode == SoundMode.VIBRATE) Icons.Default.Vibration else Icons.Default.NotificationsOff,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = TextSecondary
+                // MD3 AssistChip for Sound Mode
+                AssistChip(
+                    onClick = onEdit,
+                    label = {
+                        Text(
+                            text = rule.targetMode.displayName,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (rule.targetMode == SoundMode.VIBRATE)
+                                Icons.Rounded.Vibration
+                            else
+                                Icons.Rounded.NotificationsOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = if (rule.isEnabled)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = if (rule.isEnabled)
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        else
+                            MaterialTheme.colorScheme.surfaceContainerLow,
+                        labelColor = if (rule.isEnabled)
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    ),
+                    border = null
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = rule.targetMode.displayName, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
-            }
 
-            DaysOfWeekRow(daysOfWeek = rule.daysOfWeek, isEnabled = rule.isEnabled)
+                DaysOfWeekRow(daysOfWeek = rule.daysOfWeek, isEnabled = rule.isEnabled)
+            }
         }
     }
 }
@@ -152,15 +218,29 @@ private fun DaysOfWeekRow(daysOfWeek: List<Int>, isEnabled: Boolean) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         dayLabels.forEach { (dayInt, label) ->
             val isSelected = daysOfWeek.contains(dayInt)
+            val bgColor = when {
+                !isEnabled && isSelected -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.4f)
+                isSelected -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.25f)
+            }
+            val textColor = when {
+                !isEnabled && isSelected -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                isSelected -> MaterialTheme.colorScheme.onPrimary
+                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            }
+
             Box(
-                modifier = Modifier.size(20.dp).clip(CircleShape).background(
-                    when { !isEnabled -> Color.Transparent; isSelected -> Color(0xDDFFFFFF); else -> Color(0x12FFFFFF) }
-                ),
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(bgColor),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = label, fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                    color = when { isSelected && isEnabled -> Color.Black; isSelected -> TextTertiary; else -> TextTertiary }
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
                 )
             }
         }

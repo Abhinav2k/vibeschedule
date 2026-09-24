@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Bell, ChevronDown, ChevronUp, Clock, Volume2, VolumeX, Smartphone } from 'lucide-react';
-import { SoundMode, ScheduleRule } from '../types';
+import { ChevronDown, ChevronUp, Volume2, VolumeX, Smartphone } from 'lucide-react';
+import { ScheduleRule } from '../types';
 
 interface NotificationSimulatorProps {
   activeSchedule: ScheduleRule | null;
@@ -78,15 +78,15 @@ export const NotificationSimulator: React.FC<NotificationSimulatorProps> = ({
   }
 
   return (
-    <div className="w-full max-w-md mx-auto mb-3 px-4">
-      <div className="rounded-2xl bg-neutral-900/90 border border-white/20 backdrop-blur-xl shadow-2xl overflow-hidden transition-all">
+    <div className="w-full max-w-md mx-auto mb-16 px-4">
+      <div className="rounded-[24px] bg-[#292a2d] border border-[#45464f] shadow-2xl overflow-hidden transition-all text-[#e3e2e6]">
         {/* Header bar */}
-        <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/10 bg-white/[0.04] text-[11px] text-neutral-400">
-          <div className="flex items-center gap-1.5">
-            <Smartphone className="w-3.5 h-3.5 text-neutral-300" />
-            <span className="font-semibold text-neutral-200">Android Status Notification</span>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#45464f]/30 bg-[#1e1f23] text-xs text-[#c6c5d0]">
+          <div className="flex items-center gap-2">
+            <Smartphone className="w-3.5 h-3.5 text-[#bac3ff]" />
+            <span className="font-semibold text-[#e3e2e6]">Android Notification Live Activity</span>
             {highPriority && (
-              <span className="px-1.5 py-0.2 text-[9px] rounded-full bg-white/10 text-white font-mono">
+              <span className="px-2 py-0.5 text-[9px] font-bold rounded-full bg-[#283b9f] text-[#dee0ff]">
                 HIGH PRIORITY
               </span>
             )}
@@ -94,7 +94,7 @@ export const NotificationSimulator: React.FC<NotificationSimulatorProps> = ({
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-neutral-400 hover:text-white transition-colors"
+            className="flex items-center gap-1 text-[#c6c5d0] hover:text-white transition-colors"
           >
             <span>{expanded ? 'Collapse' : 'Expand'}</span>
             {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -102,55 +102,55 @@ export const NotificationSimulator: React.FC<NotificationSimulatorProps> = ({
         </div>
 
         {/* Notification Content */}
-        <div className="p-3.5">
+        <div className="p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-[#bac3ff]/20 text-[#bac3ff] flex items-center justify-center shrink-0 mt-0.5">
                 {modeBadge === 'NORMAL' ? (
-                  <Volume2 className="w-4 h-4 text-white" />
+                  <Volume2 className="w-4 h-4 text-emerald-400" />
                 ) : (
-                  <VolumeX className="w-4 h-4 text-white" />
+                  <VolumeX className="w-4 h-4 text-[#bac3ff]" />
                 )}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-bold text-white truncate">{title}</h4>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/15 text-neutral-200 tracking-wider">
+                  <h4 className="text-sm font-bold text-[#e3e2e6] truncate">{title}</h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#434659] text-[#dfe1f9] tracking-wider">
                     {modeBadge}
                   </span>
                 </div>
-                <p className="text-xs text-neutral-300 mt-0.5 font-medium">{timeContent}</p>
+                <p className="text-xs text-[#c6c5d0] mt-0.5 font-medium">{timeContent}</p>
               </div>
             </div>
           </div>
 
           {/* Progress bar */}
           {isActive && (
-            <div className="w-full bg-white/10 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div className="w-full bg-[#45464f]/40 rounded-full h-1.5 mt-3 overflow-hidden">
               <div
-                className="bg-white h-full rounded-full transition-all duration-500"
+                className="bg-[#bac3ff] h-full rounded-full transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
           )}
 
           {/* Action buttons */}
-          <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-white/[0.08]">
+          <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[#45464f]/30">
             {canSkip && (
               <button
                 type="button"
                 onClick={onSkipPeriod}
-                className="px-3 py-1 rounded-full text-xs font-medium text-neutral-300 hover:text-white bg-white/10 hover:bg-white/20 transition-all"
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#bac3ff] hover:bg-[#bac3ff]/15 transition-colors"
               >
-                Skip to :00
+                Skip until :00
               </button>
             )}
             <button
               type="button"
               onClick={onCancelActive}
-              className="px-3 py-1 rounded-full text-xs font-semibold text-black bg-white hover:bg-neutral-200 active:scale-95 transition-all shadow-xs"
+              className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#bac3ff] text-[#08218a] hover:bg-[#c9d0ff] transition-all active:scale-95 shadow-xs"
             >
-              End Now
+              {isPaused ? 'Restore Schedule' : 'End Early'}
             </button>
           </div>
         </div>

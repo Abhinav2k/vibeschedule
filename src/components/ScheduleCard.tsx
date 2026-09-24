@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Vibrate, BellOff, MoreHorizontal, Edit2, Trash2 } from 'lucide-react';
+import { Vibrate, BellOff, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { ScheduleRule, SoundMode } from '../types';
 import { formatTime24 } from '../hooks/useVibeSchedule';
+import { MD3Switch } from './MD3Switch';
+import { MD3Card } from './MD3Card';
 
 interface ScheduleCardProps {
   rule: ScheduleRule;
@@ -45,29 +47,26 @@ export const ScheduleCard: React.FC<ScheduleCardProps> = ({
   ];
 
   return (
-    <div
-      id={`schedule-card-${rule.id}`}
-      className={`
-        relative rounded-[22px] p-5 backdrop-blur-xl transition-all duration-200
-        ${rule.isEnabled
-          ? 'bg-white/[0.08] border border-white/[0.14] shadow-sm'
-          : 'bg-white/[0.03] border border-white/[0.06] opacity-60'
-        }
-        ${className}
-      `}
+    <MD3Card
+      variant={rule.isEnabled ? 'elevated' : 'outlined'}
+      className={`p-5 transition-all duration-200 ${
+        rule.isEnabled
+          ? 'bg-[#1e1f23]'
+          : 'bg-[#121316] opacity-65'
+      } ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <h3
-            className={`text-base font-semibold truncate ${
-              rule.isEnabled ? 'text-neutral-100' : 'text-neutral-400'
+            className={`text-sm font-semibold truncate ${
+              rule.isEnabled ? 'text-[#e3e2e6]' : 'text-[#8f909a]'
             }`}
           >
             {rule.title}
           </h3>
           <p
             className={`text-2xl font-bold tracking-tight mt-0.5 ${
-              rule.isEnabled ? 'text-white' : 'text-neutral-500'
+              rule.isEnabled ? 'text-white' : 'text-[#8f909a]'
             }`}
           >
             {formatTime24(rule.startHour, rule.startMinute)} — {formatTime24(rule.endHour, rule.endMinute)}
@@ -75,47 +74,31 @@ export const ScheduleCard: React.FC<ScheduleCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* iOS / Jetpack Compose style Switch */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={rule.isEnabled}
-            onClick={() => onToggle(!rule.isEnabled)}
-            className={`
-              relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out
-              ${rule.isEnabled ? 'bg-white' : 'bg-white/20'}
-            `}
-          >
-            <span
-              className={`
-                pointer-events-none inline-block h-6 w-6 transform rounded-full shadow-md transition duration-200 ease-in-out
-                ${rule.isEnabled ? 'translate-x-5 bg-black' : 'translate-x-0 bg-neutral-300'}
-              `}
-            />
-          </button>
+          {/* Official MD3 Switch */}
+          <MD3Switch checked={rule.isEnabled} onChange={onToggle} />
 
-          {/* More menu dropdown */}
+          {/* MD3 More Menu */}
           <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full text-[#c6c5d0] hover:text-white hover:bg-[#292a2d] transition-colors"
               aria-label="Options"
             >
-              <MoreHorizontal className="w-5 h-5" />
+              <MoreVertical className="w-5 h-5" />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 mt-1 w-32 rounded-xl bg-neutral-900 border border-white/20 shadow-2xl py-1 z-30 backdrop-blur-xl">
+              <div className="absolute right-0 mt-1 w-36 rounded-2xl bg-[#292a2d] border border-[#45464f] shadow-2xl py-1.5 z-30">
                 <button
                   type="button"
                   onClick={() => {
                     setMenuOpen(false);
                     onEdit();
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-neutral-200 hover:bg-white/10 text-left transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#e3e2e6] hover:bg-[#333438] text-left transition-colors"
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
+                  <Edit2 className="w-4 h-4 text-[#bac3ff]" />
                   Edit
                 </button>
                 <button
@@ -124,9 +107,9 @@ export const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     setMenuOpen(false);
                     onDelete();
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/20 text-left transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#ffb4ab] hover:bg-[#93000a]/20 text-left transition-colors"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4 text-[#ffb4ab]" />
                   Delete
                 </button>
               </div>
@@ -135,34 +118,38 @@ export const ScheduleCard: React.FC<ScheduleCardProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-2 border-t border-white/[0.06]">
-        {/* Mode pill */}
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] border border-white/[0.14] text-neutral-300 text-xs font-medium">
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#45464f]/40">
+        {/* MD3 AssistChip for Target Mode */}
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#292a2d] border border-[#45464f]/50 text-[#c6c5d0] text-xs font-medium hover:bg-[#333438] transition-colors"
+        >
           {rule.targetMode === SoundMode.VIBRATE ? (
-            <Vibrate className="w-3.5 h-3.5" />
+            <Vibrate className="w-3.5 h-3.5 text-[#bac3ff]" />
           ) : (
-            <BellOff className="w-3.5 h-3.5" />
+            <BellOff className="w-3.5 h-3.5 text-[#e5bad8]" />
           )}
           <span>{rule.targetMode === SoundMode.VIBRATE ? 'Vibrate' : 'Silent (DND)'}</span>
-        </div>
+        </button>
 
-        {/* Days of week dots */}
-        <div className="flex items-center gap-1">
+        {/* MD3 Days of week pills */}
+        <div className="flex items-center gap-1.5">
           {dayItems.map(({ dayInt, label }, i) => {
             const isSelected = rule.daysOfWeek.includes(dayInt);
             return (
               <span
                 key={i}
                 className={`
-                  w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all
+                  w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all
                   ${
                     !rule.isEnabled
                       ? isSelected
-                        ? 'bg-white/10 text-neutral-500'
-                        : 'text-neutral-600'
+                        ? 'bg-[#333438] text-[#8f909a]'
+                        : 'bg-transparent text-[#45464f]'
                       : isSelected
-                      ? 'bg-white text-black shadow-xs'
-                      : 'bg-white/[0.05] text-neutral-500'
+                      ? 'bg-[#bac3ff] text-[#08218a] shadow-xs'
+                      : 'bg-[#292a2d] text-[#8f909a]'
                   }
                 `}
               >
@@ -172,6 +159,6 @@ export const ScheduleCard: React.FC<ScheduleCardProps> = ({
           })}
         </div>
       </div>
-    </div>
+    </MD3Card>
   );
 };

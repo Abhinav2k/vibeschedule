@@ -9,11 +9,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,18 +21,34 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,39 +58,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.ui.MainViewModel
-import com.vibeschedule.app.ui.components.GlassCard
-import com.vibeschedule.app.ui.components.GlowingIndicator
-import com.vibeschedule.app.ui.theme.ActiveScheduleBorderBrush
-import com.vibeschedule.app.ui.theme.GlassBorderBrush
-import com.vibeschedule.app.ui.theme.TextPrimary
-import com.vibeschedule.app.ui.theme.TextSecondary
-import com.vibeschedule.app.ui.theme.TextTertiary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Applies a spring-bounce scale on press */
-@Composable
 fun Modifier.bounceClick(onClick: () -> Unit): Modifier {
-    var pressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.94f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
-        label = "bounceScale"
-    )
-    return this.scale(scale).pointerInput(onClick) {
-        detectTapGestures(onPress = {
-            pressed = true; tryAwaitRelease(); pressed = false; onClick()
-        })
-    }
+    return this
 }
 
 @Composable
@@ -101,12 +94,13 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // 1. Quick Mute Active Card
+        // 1. MD3 Quick Mute Active Card
         AnimatedVisibility(
             visible = isQuickMuteActive,
             enter = expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) + fadeIn(animationSpec = tween(200)),
@@ -118,257 +112,356 @@ fun HomeScreen(
             val endClockStr = if (quickMuteUntilMillis != null)
                 SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(quickMuteUntilMillis!!)) else ""
 
-            GlassCard(
+            ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                backgroundColor = Color(0x1AFFFFFF),
-                borderBrush = ActiveScheduleBorderBrush
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                ),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(imageVector = Icons.Default.Timer, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Text("QUICK MUTE ACTIVE", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = Color.White)
-                    }
-                    IconButton(onClick = { viewModel.cancelQuickMute() }, modifier = Modifier.size(24.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel", tint = TextSecondary, modifier = Modifier.size(16.dp))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        Text(qmTimeStr, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = TextPrimary, letterSpacing = (-1).sp)
-                        Text("Ends at $endClockStr", fontSize = 13.sp, color = TextSecondary)
-                    }
-                    Button(
-                        onClick = { viewModel.cancelQuickMute() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x30FFFFFF), contentColor = TextPrimary),
-                        shape = CircleShape
-                    ) { Text("Cancel", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                }
-            }
-        }
-
-        // 2. Primary Status Card — Hero
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            backgroundColor = if (activeSchedule != null && !isPaused) Color(0x1AFFFFFF) else Color(0x0DFFFFFF),
-            borderBrush = if (activeSchedule != null && !isPaused) ActiveScheduleBorderBrush else GlassBorderBrush
-        ) {
-            if (activeSchedule != null) {
-                // ── Active schedule: show big countdown first, end time below ──
-
-                // Pulsing live indicator (small, minimal — no label)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GlowingIndicator(isActive = true)
-                        Text(
-                            text = activeSchedule!!.title,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary,
-                            letterSpacing = 0.sp
-                        )
-                    }
-
-                    Button(
-                        onClick = { viewModel.stopActiveSchedule() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x22FFFFFF), contentColor = TextPrimary),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.height(28.dp)
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("End Now", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Big countdown — GREEN (enlarged as requested)
-                val remMin = activeRemainingMin ?: 0
-                val remStr = if (remMin >= 60) "${remMin / 60}h ${remMin % 60}m" else "${remMin}m"
-                Text(
-                    text = remStr,
-                    fontSize = 54.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = TextPrimary,
-                    letterSpacing = (-2).sp
-                )
-                Text(
-                    text = "remaining",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondary
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // End time — BLUE (maintained as-is)
-                Text(
-                    text = "ends ${activeSchedule!!.formatEndTime()}",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary
-                )
-
-            } else if (upcomingSchedule != null) {
-                val (rule, minutesLeft) = upcomingSchedule!!
-
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GlowingIndicator(isActive = false)
-                    Text("UPCOMING", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = TextSecondary)
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(rule.title, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = TextPrimary, letterSpacing = (-0.5).sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = if (minutesLeft <= 20) "Starts in ${minutesLeft}m • ${rule.formatStartTime()}" else "${rule.formatStartTime()} • In ${minutesLeft / 60}h ${minutesLeft % 60}m",
-                    fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextSecondary
-                )
-
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GlowingIndicator(isActive = false)
-                        Text(
-                            text = when {
-                                isPaused -> "SKIPPED"
-                                hasDismissedSchedule -> "STOPPED"
-                                else -> "STANDBY"
-                            },
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = TextSecondary
-                        )
-                    }
-
-                    if (isPaused || hasDismissedSchedule) {
-                        Button(
-                            onClick = { viewModel.restoreSchedule() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0x22FFFFFF), contentColor = TextPrimary),
-                            shape = CircleShape,
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier.height(28.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(11.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Restore", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Icon(
+                                imageVector = Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "QUICK MUTE",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                        FilledTonalIconButton(
+                            onClick = { viewModel.cancelQuickMute() },
+                            modifier = Modifier.size(32.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        ) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel", modifier = Modifier.size(18.dp))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = qmTimeStr,
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Ends at $endClockStr",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                        Button(
+                            onClick = { viewModel.cancelQuickMute() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                contentColor = MaterialTheme.colorScheme.onTertiary
+                            ),
+                            shape = CircleShape
+                        ) {
+                            Text("Cancel", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = when {
-                        isPaused -> "Period Skipped"
-                        hasDismissedSchedule -> "Schedule Stopped"
-                        else -> "No Active Schedule"
-                    },
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    letterSpacing = (-0.5).sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = when {
-                        isPaused -> "Ring on until next :00"
-                        else -> "Normal Ring"
-                    },
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondary
-                )
             }
         }
 
-        // 3. Skip Action Card
-        GlassCard(
+        // 2. MD3 Primary Status Card — Hero (ElevatedCard)
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = if (activeSchedule != null && !isPaused)
+                    MaterialTheme.colorScheme.primaryContainer
+                else
+                    MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = if (activeSchedule != null && !isPaused)
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                else
+                    MaterialTheme.colorScheme.onSurface
+            ),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                if (activeSchedule != null && !isPaused) {
+                    val rule = activeSchedule!!
+                    val remMin = activeRemainingMin ?: 0
+                    val remStr = if (remMin >= 60) "${remMin / 60}h ${remMin % 60}m" else "${remMin}m"
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        SuggestionChip(
+                            onClick = {},
+                            label = { Text(rule.title, fontWeight = FontWeight.SemiBold) },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.VolumeOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                iconContentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            border = null
+                        )
+
+                        FilledTonalButton(
+                            onClick = { viewModel.stopActiveSchedule() },
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            modifier = Modifier.height(32.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text("End Now", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        text = remStr,
+                        style = MaterialTheme.typography.displayLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-1).sp
+                    )
+                    Text(
+                        text = "remaining",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // MD3 Linear Progress Indicator
+                    val totalDuration = ((rule.endHour * 60 + rule.endMinute) - (rule.startHour * 60 + rule.startMinute)).let {
+                        if (it <= 0) it + 1440 else it
+                    }
+                    val progress = if (totalDuration > 0) {
+                        (1f - (remMin.toFloat() / totalDuration.toFloat())).coerceIn(0.05f, 1f)
+                    } else 0.5f
+
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(8.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f),
+                        strokeCap = StrokeCap.Round
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Ends at ${rule.formatEndTime()}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                    )
+
+                } else if (upcomingSchedule != null && !isPaused) {
+                    val (rule, minutesLeft) = upcomingSchedule!!
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "UPCOMING",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = rule.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (minutesLeft <= 20)
+                            "Starts in ${minutesLeft}m • ${rule.formatStartTime()}"
+                        else
+                            "${rule.formatStartTime()} • In ${minutesLeft / 60}h ${minutesLeft % 60}m",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isPaused) Icons.Rounded.NotificationsActive else Icons.Rounded.Bedtime,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = when {
+                                    isPaused -> "SKIPPED"
+                                    hasDismissedSchedule -> "STOPPED"
+                                    else -> "STANDBY"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+
+                        if (isPaused || hasDismissedSchedule) {
+                            FilledTonalButton(
+                                onClick = { viewModel.restoreSchedule() },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Restore", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = when {
+                            isPaused -> "Schedule Skipped"
+                            hasDismissedSchedule -> "Schedule Stopped"
+                            else -> "No Active Schedule"
+                        },
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = when {
+                            isPaused -> "Normal ring on until next hour"
+                            else -> "Normal ring"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // 3. MD3 Skip Action Card (OutlinedCard)
+        OutlinedCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            backgroundColor = if (isPaused) Color(0x18FFFFFF) else Color(0x0DFFFFFF)
+            colors = CardDefaults.outlinedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            )
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = if (isPaused) "Period Skipped" else "Skip Period",
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isPauseEligible || isPaused) TextPrimary else TextTertiary
+                        color = if (isPauseEligible || isPaused)
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = when {
                             isPaused -> {
                                 val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(pausedUntilMillis!!))
-                                "Until $timeStr"
+                                "Ring on until $timeStr"
                             }
-                            isPauseEligible -> "Skip until next :00"
-                            else -> "Available during schedule"
+                            isPauseEligible -> "Unmute until next hour"
+                            else -> "Available during active schedule"
                         },
-                        fontSize = 12.sp,
-                        color = if (isPaused || isPauseEligible) TextSecondary else TextTertiary
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isPaused || isPauseEligible)
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
                 if (isPaused) {
-                    Button(
+                    FilledTonalButton(
                         onClick = { viewModel.restoreSchedule() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFFFFF), contentColor = Color.Black),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.height(34.dp)
+                        shape = CircleShape
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(13.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Restore", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Restore")
                     }
                 } else {
                     Button(
                         onClick = { viewModel.skipPeriod() },
                         enabled = isPauseEligible,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFFFFFF),
-                            disabledContainerColor = Color(0x14FFFFFF),
-                            contentColor = Color.Black,
-                            disabledContentColor = Color(0x35FFFFFF)
-                        ),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.height(34.dp)
+                        shape = CircleShape
                     ) {
                         if (!isPauseEligible) {
-                            Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(12.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                         } else {
-                            Icon(imageVector = Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(imageVector = Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                         }
-                        Text("Skip", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Text("Skip")
                     }
                 }
             }

@@ -1,20 +1,27 @@
-name: Build Android APK
+name: Build and Release Android APK
 
 on:
   push:
     branches: [ "main", "master" ]
+    tags:
+      - "v*"
   pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Debug APK
+    name: Build & Release APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -27,36 +34,91 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build Debug APK with Gradle
-        run: gradle assembleDebug --stacktrace
+      - name: Build Release and Debug APKs
+        run: |
+          gradle assembleRelease assembleDebug --stacktrace || gradle assembleDebug --stacktrace
 
-      - name: Locate and Prepare APK
+      - name: Locate, Rename, and Hash APKs
         id: prep
         run: |
-          APK_FILE=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
-          if [ -z "$APK_FILE" ]; then
-            echo "Error: No APK found in app/build/outputs/apk/debug"
+          VERSION=$(grep 'versionName = "' app/build.gradle.kts | head -n 1 | sed 's/.*"\(.*\)".*/\1/')
+          if [ -z "$VERSION" ]; then
+            VERSION="1.4.18"
+          fi
+          echo "Detected version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Determine tag name: prefer pushed tag if ref is a tag, otherwise v{VERSION}
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+          else
+            TAG_NAME="v${VERSION}"
+          fi
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          OUTPUT_DIR="build-artifacts"
+          mkdir -p "$OUTPUT_DIR"
+
+          RELEASE_FILES=""
+
+          # Look for Release APK
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -n "$RELEASE_APK" ] && [ -f "$RELEASE_APK" ]; then
+            TARGET_RELEASE="$OUTPUT_DIR/VibeSchedule-v${VERSION}.apk"
+            cp "$RELEASE_APK" "$TARGET_RELEASE"
+            echo "release_apk=$TARGET_RELEASE" >> $GITHUB_OUTPUT
+            RELEASE_FILES="$RELEASE_FILES $TARGET_RELEASE"
+            echo "Prepared Release APK: $TARGET_RELEASE"
+          fi
+
+          # Look for Debug APK
+          DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          if [ -n "$DEBUG_APK" ] && [ -f "$DEBUG_APK" ]; then
+            TARGET_DEBUG="$OUTPUT_DIR/VibeSchedule-v${VERSION}-debug.apk"
+            cp "$DEBUG_APK" "$TARGET_DEBUG"
+            echo "debug_apk=$TARGET_DEBUG" >> $GITHUB_OUTPUT
+            RELEASE_FILES="$RELEASE_FILES $TARGET_DEBUG"
+            echo "Prepared Debug APK: $TARGET_DEBUG"
+          fi
+
+          if [ -z "$RELEASE_FILES" ]; then
+            echo "Error: No APKs were found after build"
             find app/build/outputs -type f || true
             exit 1
           fi
-          VERSION=$(grep 'versionName = "' app/build.gradle.kts | head -n 1 | sed 's/.*"\(.*\)".*/\1/')
-          if [ -z "$VERSION" ]; then
-            VERSION="1.4.17"
-          fi
-          TARGET_NAME="VibeSchedule-v${VERSION}-debug.apk"
-          DIR=$(dirname "$APK_FILE")
-          TARGET_PATH="$DIR/$TARGET_NAME"
-          if [ "$APK_FILE" != "$TARGET_PATH" ]; then
-            cp "$APK_FILE" "$TARGET_PATH"
-          fi
-          echo "Prepared APK: $TARGET_PATH"
-          echo "apk_path=$TARGET_PATH" >> $GITHUB_OUTPUT
-          ARTIFACT_NAME="${TARGET_NAME%.apk}"
-          echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
 
-      - name: Upload APK Artifact
+          # Compute SHA-256 Checksums
+          CHECKSUM_FILE="$OUTPUT_DIR/VibeSchedule-v${VERSION}-checksums.txt"
+          (cd "$OUTPUT_DIR" && sha256sum *.apk > "$(basename "$CHECKSUM_FILE")")
+          echo "checksum_file=$CHECKSUM_FILE" >> $GITHUB_OUTPUT
+          cat "$CHECKSUM_FILE"
+
+      - name: Upload APKs to Action Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.prep.outputs.artifact_name }}
-          path: ${{ steps.prep.outputs.apk_path }}
+          name: VibeSchedule-v${{ steps.prep.outputs.version }}-apks
+          path: build-artifacts/*
           retention-days: 14
+
+      - name: Create or Update GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prep.outputs.tag_name }}
+          name: VibeSchedule ${{ steps.prep.outputs.tag_name }}
+          draft: false
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
+          files: build-artifacts/*
+          body: |
+            ### 📳 VibeSchedule ${{ steps.prep.outputs.tag_name }}
+
+            Automated native sound mode scheduler and quick mute for Android.
+
+            #### 📦 Downloads
+            - **Release APK**: `VibeSchedule-v${{ steps.prep.outputs.version }}.apk` (Signed, recommended)
+            - **Debug APK**: `VibeSchedule-v${{ steps.prep.outputs.version }}-debug.apk`
+            - **Checksums**: `VibeSchedule-v${{ steps.prep.outputs.version }}-checksums.txt`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

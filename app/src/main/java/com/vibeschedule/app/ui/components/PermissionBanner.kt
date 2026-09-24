@@ -17,10 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -30,17 +33,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.vibeschedule.app.ui.theme.AccentAmber
-import com.vibeschedule.app.ui.theme.TextPrimary
-import com.vibeschedule.app.ui.theme.TextSecondary
 
 @Composable
 fun PermissionBanner(modifier: Modifier = Modifier) {
@@ -75,40 +73,48 @@ fun PermissionBanner(modifier: Modifier = Modifier) {
     }
 
     if (!hasDndPermission || !hasExactAlarmPermission) {
-        GlassCard(
+        ElevatedCard(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 6.dp),
-            shape = RoundedCornerShape(20.dp),
-            backgroundColor = Color(0x1AFF9F0A)
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer
+            ),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Info,
+                        imageVector = Icons.Rounded.Warning,
                         contentDescription = null,
-                        tint = AccentAmber,
-                        modifier = Modifier.size(20.dp)
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(24.dp)
                     )
                     Column {
                         Text(
                             text = "Permission Required",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (!hasDndPermission) "Allow Sound Policy to toggle ringer" else "Enable Exact Alarms for precision",
-                            fontSize = 12.sp,
-                            color = TextSecondary
+                            text = if (!hasDndPermission)
+                                "Allow Sound Policy to toggle ringer mode"
+                            else
+                                "Enable Exact Alarms for precision timers",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
                         )
                     }
                 }
@@ -126,12 +132,12 @@ fun PermissionBanner(modifier: Modifier = Modifier) {
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentAmber,
-                        contentColor = Color.Black
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
                     ),
                     shape = CircleShape
                 ) {
-                    Text("Grant", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Grant", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }

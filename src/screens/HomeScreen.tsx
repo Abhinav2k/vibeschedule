@@ -1,8 +1,7 @@
 import React from 'react';
-import { Timer, X, SkipForward, RotateCcw, Lock } from 'lucide-react';
+import { Timer, X, SkipForward, RotateCcw, Lock, Volume2, BellOff } from 'lucide-react';
 import { ScheduleRule } from '../types';
-import { GlassCard } from '../components/GlassCard';
-import { GlowingIndicator } from '../components/GlowingIndicator';
+import { MD3Card } from '../components/MD3Card';
 import { formatTime24 } from '../hooks/useVibeSchedule';
 
 interface HomeScreenProps {
@@ -16,7 +15,6 @@ interface HomeScreenProps {
   onCancelQuickMute: () => void;
   onPauseUntilNextOClock: () => void;
   onCancelPause: () => void;
-  onNavigateToSchedules: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -30,7 +28,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onCancelQuickMute,
   onPauseUntilNextOClock,
   onCancelPause,
-  onNavigateToSchedules,
 }) => {
   const isPaused = pausedUntilMillis !== null;
   const isQuickMuteActive = quickMuteUntilMillis !== null && quickMuteRemainingSeconds > 0;
@@ -47,24 +44,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     : '';
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-3.5 px-4 pb-20 pt-2">
-      {/* 1. Quick Mute Active Card */}
+    <div className="w-full max-w-md mx-auto space-y-4 px-4 pb-20 pt-2">
+      {/* 1. Quick Mute Card */}
       {isQuickMuteActive && (
-        <GlassCard
-          isActive={true}
-          className="rounded-[26px] bg-white/[0.12] border-white/40 shadow-[0_8px_32px_rgba(255,255,255,0.08)] animate-in fade-in slide-in-from-top-2 duration-300"
+        <MD3Card
+          variant="elevated"
+          className="rounded-[28px] bg-[#5d3c56] text-[#ffd7f3] p-5 shadow-md border border-[#e5bad8]/30"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Timer className="w-4 h-4 text-white" />
-              <span className="text-[11px] font-bold tracking-widest text-white uppercase">
-                Quick Mute Active
+              <Timer className="w-4 h-4 text-[#ffd7f3]" />
+              <span className="text-xs font-semibold text-[#ffd7f3]">
+                Quick Mute
               </span>
             </div>
             <button
               type="button"
               onClick={onCancelQuickMute}
-              className="p-1 rounded-full text-neutral-400 hover:text-white transition-colors"
+              className="p-1 rounded-full text-[#ffd7f3]/70 hover:text-white transition-colors"
               aria-label="Cancel quick mute"
             >
               <X className="w-4 h-4" />
@@ -73,72 +70,94 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
           <div className="flex items-end justify-between mt-3">
             <div>
-              <div className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight font-mono">
+              <div className="text-4xl font-bold tracking-tight font-mono text-[#ffd7f3]">
                 {qmTimeStr}
               </div>
-              <p className="text-xs sm:text-sm text-neutral-300 mt-0.5">
+              <p className="text-xs text-[#ffd7f3]/80 mt-1">
                 Ends at {qmEndClockStr}
               </p>
             </div>
             <button
               type="button"
               onClick={onCancelQuickMute}
-              className="px-4 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-md transition-all active:scale-95"
+              className="px-4 py-2 rounded-full bg-[#e5bad8] text-[#45263f] text-xs font-semibold hover:bg-[#f0c8e4] transition-all active:scale-95"
             >
               Cancel
             </button>
           </div>
-        </GlassCard>
+        </MD3Card>
       )}
 
-      {/* 2. Primary Status Card — Hero */}
-      <GlassCard
+      {/* 2. Primary Status Card */}
+      <MD3Card
+        variant="elevated"
         isActive={activeSchedule !== null && !isPaused}
-        className="rounded-[28px] p-6 text-left"
+        className={`rounded-[28px] p-6 text-left ${
+          activeSchedule && !isPaused
+            ? 'bg-[#283b9f]/30 border border-[#bac3ff]/40'
+            : 'bg-[#1e1f23] border border-[#45464f]/30'
+        }`}
       >
         {activeSchedule && !isPaused ? (
           <div>
-            <div className="flex items-center gap-2.5">
-              <GlowingIndicator isActive={true} />
-              <span className="text-sm font-medium text-neutral-300">
-                {activeSchedule.title}
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#bac3ff]/20 text-xs font-semibold text-[#bac3ff]">
+                <BellOff className="w-3.5 h-3.5" />
+                <span>{activeSchedule.title}</span>
+              </div>
+              <button
+                type="button"
+                onClick={onPauseUntilNextOClock}
+                className="text-xs font-semibold px-3 py-1 rounded-full bg-[#1e1f23] hover:bg-[#292a2d] text-[#e3e2e6] border border-[#45464f] transition-all"
+              >
+                Skip
+              </button>
             </div>
 
-            <div className="mt-4">
-              <div className="text-5xl sm:text-6xl font-black text-white tracking-tighter">
+            <div className="mt-5">
+              <div className="text-5xl font-black text-white tracking-tight">
                 {activeRemainingMinutes && activeRemainingMinutes >= 60
                   ? `${Math.floor(activeRemainingMinutes / 60)}h ${activeRemainingMinutes % 60}m`
                   : `${activeRemainingMinutes || 0}m`}
               </div>
-              <p className="text-xs sm:text-sm font-medium text-neutral-400 mt-0.5">
+              <p className="text-xs text-[#bac3ff]/80 mt-1">
                 remaining
               </p>
             </div>
 
-            <div className="mt-3 text-sm font-semibold text-neutral-300">
-              ends {formatTime24(activeSchedule.endHour, activeSchedule.endMinute)}
-            </div>
-          </div>
-        ) : upcomingSchedule ? (
-          <div>
-            <div className="flex items-center gap-2">
-              <GlowingIndicator isActive={false} />
-              <span className="text-[11px] font-bold tracking-widest text-neutral-400 uppercase">
-                Upcoming
-              </span>
+            {/* Linear Progress Bar */}
+            <div className="w-full bg-[#45464f]/40 h-2 rounded-full overflow-hidden mt-4">
+              <div
+                className="bg-[#bac3ff] h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${Math.min(100, Math.max(10, ((activeRemainingMinutes || 30) / 120) * 100))}%`,
+                }}
+              />
             </div>
 
-            <div className="mt-3">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            <div className="mt-4 text-xs font-medium text-[#c6c5d0]">
+              Ends at{' '}
+              <span className="font-semibold text-[#e3e2e6]">
+                {formatTime24(activeSchedule.endHour, activeSchedule.endMinute)}
+              </span>
+            </div>
+          </div>
+        ) : upcomingSchedule && !isPaused ? (
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#434659] text-[#dfe1f9] text-xs font-medium">
+              <span>Upcoming</span>
+            </div>
+
+            <div className="mt-4">
+              <h2 className="text-2xl font-bold text-white tracking-tight">
                 {upcomingSchedule.rule.title}
               </h2>
-              <p className="text-sm font-medium text-neutral-300 mt-1">
+              <p className="text-sm font-medium text-[#c6c5d0] mt-1.5">
                 {upcomingSchedule.minutesLeft <= 20
-                  ? `Starts in ${upcomingSchedule.minutesLeft}m • ${formatTime24(
+                  ? `Starts in ${upcomingSchedule.minutesLeft}m (${formatTime24(
                       upcomingSchedule.rule.startHour,
                       upcomingSchedule.rule.startMinute
-                    )}`
+                    )})`
                   : `${formatTime24(
                       upcomingSchedule.rule.startHour,
                       upcomingSchedule.rule.startMinute
@@ -151,61 +170,63 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         ) : (
           <div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <GlowingIndicator isActive={false} />
-                <span className="text-[11px] font-bold tracking-widest text-neutral-400 uppercase">
-                  {isPaused ? 'Skipped' : 'Standby'}
-                </span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#292a2d] text-[#c6c5d0] text-xs font-medium">
+                <Volume2 className="w-3.5 h-3.5 text-[#bac3ff]" />
+                <span>{isPaused ? 'Skipped' : 'Standby'}</span>
               </div>
+
               {isPaused && (
                 <button
                   type="button"
                   onClick={onCancelPause}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium text-[11px] transition-all cursor-pointer active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#bac3ff] text-[#08218a] font-semibold text-xs hover:bg-[#c9d0ff] transition-all cursor-pointer"
                 >
-                  <RotateCcw className="w-3 h-3 text-neutral-300" />
+                  <RotateCcw className="w-3 h-3" />
                   Restore
                 </button>
               )}
             </div>
 
-            <div className="mt-3">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                {isPaused ? 'Period Skipped' : 'No Active Schedule'}
+            <div className="mt-4">
+              <h2 className="text-2xl font-bold text-white tracking-tight">
+                {isPaused ? 'Schedule Skipped' : 'No Active Schedule'}
               </h2>
-              <p className="text-sm font-medium text-neutral-300 mt-1">
-                {isPaused ? 'Ring on until next :00' : 'Normal Ring'}
+              <p className="text-sm text-[#c6c5d0] mt-1">
+                {isPaused
+                  ? `Normal ring on until ${pausedEndClockStr}`
+                  : 'Normal ring'}
               </p>
             </div>
           </div>
         )}
-      </GlassCard>
+      </MD3Card>
 
-      {/* 3. Skip Action Card */}
-      <GlassCard
+      {/* 3. Skip Period Card */}
+      <MD3Card
+        variant="outlined"
         className={`rounded-[24px] p-5 ${
-          isPaused ? 'bg-white/[0.1] border-white/25' : 'bg-white/[0.05]'
+          isPaused ? 'bg-[#1e1f23] border-[#bac3ff]/40' : 'bg-[#1a1b1e] border-[#45464f]'
         }`}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
             <h3
-              className={`text-sm sm:text-base font-semibold ${
-                isPauseEligible || isPaused ? 'text-white' : 'text-neutral-500'
+              className={`text-sm font-semibold ${
+                isPauseEligible || isPaused ? 'text-[#e3e2e6]' : 'text-[#8f909a]'
               }`}
             >
               {isPaused ? 'Period Skipped' : 'Skip Period'}
             </h3>
             <p
               className={`text-xs mt-0.5 ${
-                isPaused || isPauseEligible ? 'text-neutral-300' : 'text-neutral-500'
+                isPaused || isPauseEligible ? 'text-[#c6c5d0]' : 'text-[#8f909a]/60'
               }`}
             >
               {isPaused
-                ? `Until ${pausedEndClockStr}`
+                ? `Ring on until ${pausedEndClockStr}`
                 : isPauseEligible
-                ? 'Skip until next :00'
-                : 'Available during schedule'}
+                ? 'Unmute until next hour'
+                : 'Available during active schedule'}
             </p>
           </div>
 
@@ -214,9 +235,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <button
                 type="button"
                 onClick={onCancelPause}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-all active:scale-95 shadow-md cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#bac3ff] text-[#08218a] font-semibold text-xs hover:bg-[#c9d0ff] transition-all active:scale-95"
               >
-                <RotateCcw className="w-3.5 h-3.5 text-black" />
+                <RotateCcw className="w-3.5 h-3.5" />
                 Restore
               </button>
             ) : (
@@ -224,34 +245,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 type="button"
                 onClick={onPauseUntilNextOClock}
                 disabled={!isPauseEligible}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-xs ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                   isPauseEligible
-                    ? 'bg-white text-black hover:bg-neutral-200 active:scale-95 cursor-pointer'
-                    : 'bg-white/10 text-neutral-500 cursor-not-allowed border border-white/5'
+                    ? 'bg-[#bac3ff] text-[#08218a] hover:bg-[#c9d0ff] active:scale-95 cursor-pointer'
+                    : 'bg-[#292a2d] text-[#8f909a] cursor-not-allowed border border-[#45464f]/30'
                 }`}
               >
                 {!isPauseEligible ? (
-                  <Lock className="w-3.5 h-3.5 text-neutral-500" />
+                  <Lock className="w-3.5 h-3.5 text-[#8f909a]" />
                 ) : (
-                  <SkipForward className="w-3.5 h-3.5 text-black" />
+                  <SkipForward className="w-3.5 h-3.5" />
                 )}
                 Skip
               </button>
             )}
           </div>
         </div>
-      </GlassCard>
-
-      {/* Direct link to schedules if empty or to configure */}
-      <div className="pt-2 text-center">
-        <button
-          type="button"
-          onClick={onNavigateToSchedules}
-          className="text-xs text-neutral-400 hover:text-white transition-colors underline-offset-4 hover:underline"
-        >
-          View all scheduled rules →
-        </button>
-      </div>
+      </MD3Card>
     </div>
   );
 };

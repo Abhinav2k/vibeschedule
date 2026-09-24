@@ -2,7 +2,6 @@ package com.vibeschedule.app.ui.components
 
 import android.app.TimePickerDialog
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,14 +19,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,19 +48,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
-import com.vibeschedule.app.ui.theme.TextPrimary
-import com.vibeschedule.app.ui.theme.TextSecondary
-import com.vibeschedule.app.ui.theme.TextTertiary
 import java.util.Calendar
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditScheduleDialog(
     initialRule: ScheduleRule?,
@@ -99,14 +104,14 @@ fun AddEditScheduleDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF141620),
-        shape = RoundedCornerShape(26.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(28.dp),
         title = {
             Text(
                 text = if (initialRule == null) "New Schedule" else "Edit Schedule",
-                fontSize = 20.sp,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
@@ -114,30 +119,25 @@ fun AddEditScheduleDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Title Field
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    placeholder = { Text("Label (e.g. Work, Lecture)", color = TextTertiary) },
+                    label = { Text("Schedule Name") },
+                    placeholder = { Text("e.g., Deep Work, Lecture, Sleep") },
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.White,
-                        unfocusedBorderColor = Color(0x25FFFFFF),
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Time Pickers
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TimeBox(
+                    MD3TimeBox(
                         label = "Starts",
                         hour = startHour,
                         minute = startMinute,
@@ -153,7 +153,7 @@ fun AddEditScheduleDialog(
                         modifier = Modifier.weight(1f)
                     )
 
-                    TimeBox(
+                    MD3TimeBox(
                         label = "Ends",
                         hour = endHour,
                         minute = endMinute,
@@ -172,10 +172,10 @@ fun AddEditScheduleDialog(
 
                 // Days Selection Header
                 Text(
-                    text = "Repeat",
-                    fontSize = 13.sp,
+                    text = "Repeat Days",
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 // Quick Day Presets
@@ -193,24 +193,27 @@ fun AddEditScheduleDialog(
                     )
                     val weekends = listOf(Calendar.SATURDAY, Calendar.SUNDAY)
 
-                    PresetChip(text = "Daily", isSelected = selectedDays.size == 7) {
-                        selectedDays = allDays
-                    }
-                    PresetChip(
-                        text = "Weekdays",
-                        isSelected = selectedDays.size == 5 && selectedDays.containsAll(weekdays)
-                    ) {
-                        selectedDays = weekdays
-                    }
-                    PresetChip(
-                        text = "Weekends",
-                        isSelected = selectedDays.size == 2 && selectedDays.containsAll(weekends)
-                    ) {
-                        selectedDays = weekends
-                    }
+                    FilterChip(
+                        selected = selectedDays.size == 7,
+                        onClick = { selectedDays = allDays },
+                        label = { Text("Daily", style = MaterialTheme.typography.labelSmall) },
+                        shape = CircleShape
+                    )
+                    FilterChip(
+                        selected = selectedDays.size == 5 && selectedDays.containsAll(weekdays),
+                        onClick = { selectedDays = weekdays },
+                        label = { Text("Weekdays", style = MaterialTheme.typography.labelSmall) },
+                        shape = CircleShape
+                    )
+                    FilterChip(
+                        selected = selectedDays.size == 2 && selectedDays.containsAll(weekends),
+                        onClick = { selectedDays = weekends },
+                        label = { Text("Weekends", style = MaterialTheme.typography.labelSmall) },
+                        shape = CircleShape
+                    )
                 }
 
-                // Individual Day Toggles
+                // Individual Day Circles
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -229,9 +232,14 @@ fun AddEditScheduleDialog(
                         val isSelected = selectedDays.contains(dayInt)
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
-                                .background(if (isSelected) Color.White else Color(0x15FFFFFF))
+                                .background(
+                                    if (isSelected)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.surfaceContainer
+                                )
                                 .clickable {
                                     selectedDays = if (isSelected) {
                                         selectedDays - dayInt
@@ -243,9 +251,12 @@ fun AddEditScheduleDialog(
                         ) {
                             Text(
                                 text = label,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.Black else TextTertiary
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -253,35 +264,43 @@ fun AddEditScheduleDialog(
 
                 // Sound Mode Selection
                 Text(
-                    text = "Mode",
-                    fontSize = 13.sp,
+                    text = "Sound Mode During Schedule",
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     FilterChip(
                         selected = targetMode == SoundMode.VIBRATE,
                         onClick = { targetMode = SoundMode.VIBRATE },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Vibration,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
                         label = { Text("Vibrate") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0x30FFFFFF),
-                            selectedLabelColor = Color.White
-                        ),
-                        shape = CircleShape
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
                     )
                     FilterChip(
                         selected = targetMode == SoundMode.SILENT,
                         onClick = { targetMode = SoundMode.SILENT },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.NotificationsOff,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
                         label = { Text("Silent (DND)") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0x30FFFFFF),
-                            selectedLabelColor = Color.White
-                        ),
-                        shape = CircleShape
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
             }
@@ -289,7 +308,7 @@ fun AddEditScheduleDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (title.isBlank()) title = "Scheduled Mode"
+                    if (title.isBlank()) title = "Scheduled Quiet"
                     val newRule = (initialRule ?: ScheduleRule(
                         title = title,
                         startHour = startHour,
@@ -310,22 +329,21 @@ fun AddEditScheduleDialog(
                     onSave(newRule)
                 },
                 enabled = selectedDays.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                 shape = CircleShape
             ) {
-                Text("Save", fontWeight = FontWeight.SemiBold)
+                Text("Save Schedule", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextSecondary)
+                Text("Cancel")
             }
         }
     )
 }
 
 @Composable
-private fun TimeBox(
+private fun MD3TimeBox(
     label: String,
     hour: Int,
     minute: Int,
@@ -341,114 +359,73 @@ private fun TimeBox(
     val isAm = hour < 12
     val timeFormatted = String.format(Locale.getDefault(), "%d:%02d", displayHour, minute)
 
-    Surface(
+    OutlinedCard(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0x18FFFFFF)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = label.uppercase(Locale.getDefault()),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextTertiary,
-                letterSpacing = 0.5.sp
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             Spacer(modifier = Modifier.height(6.dp))
 
-            Surface(
-                onClick = onTimeClick,
-                shape = RoundedCornerShape(10.dp),
-                color = Color(0x14FFFFFF),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(vertical = 7.dp, horizontal = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccessTime,
-                        contentDescription = "Select Time",
-                        modifier = Modifier.size(15.dp),
-                        tint = Color.White.copy(alpha = 0.8f)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = timeFormatted,
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                }
-            }
+            Text(
+                text = timeFormatted,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { onTimeClick() }
+            )
 
-            Spacer(modifier = Modifier.height(7.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // AM / PM Toggle row
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0x18FFFFFF))
-                    .padding(2.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(2.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (isAm) Color.White else Color.Transparent)
+                        .clip(CircleShape)
+                        .background(if (isAm) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent)
                         .clickable { onAmPmToggle(true) }
-                        .padding(vertical = 4.dp),
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "AM",
-                        fontSize = 11.sp,
-                        fontWeight = if (isAm) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isAm) Color.Black else TextSecondary
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isAm) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (!isAm) Color.White else Color.Transparent)
+                        .clip(CircleShape)
+                        .background(if (!isAm) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent)
                         .clickable { onAmPmToggle(false) }
-                        .padding(vertical = 4.dp),
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "PM",
-                        fontSize = 11.sp,
-                        fontWeight = if (!isAm) FontWeight.Bold else FontWeight.Medium,
-                        color = if (!isAm) Color.Black else TextSecondary
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (!isAm) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PresetChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(if (isSelected) Color(0x28FFFFFF) else Color(0x12FFFFFF))
-            .border(0.5.dp, if (isSelected) Color(0x55FFFFFF) else Color.Transparent, CircleShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) Color.White else TextSecondary
-        )
     }
 }

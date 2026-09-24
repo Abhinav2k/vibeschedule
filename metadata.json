@@ -1,6 +1,6 @@
 {
   "name": "VibeSchedule",
-  "description": "Automated ringer schedule and quick mute manager with obsidian liquid glass UI, schedule countdowns, and quick actions.",
+  "description": "Automated ringer schedule and quick mute manager for quiet hours, meetings, and sleep.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
