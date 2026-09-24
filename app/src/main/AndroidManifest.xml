@@ -16,6 +16,20 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VibeSchedule">
 
+        <!-- OriginOS (vivo / iQOO) Origin Island & Live Capsule declarations -->
+        <meta-data
+            android:name="vivo.origin.island.support"
+            android:value="true" />
+        <meta-data
+            android:name="com.vivo.notification.capsule"
+            android:value="true" />
+        <meta-data
+            android:name="android.app.feature.CAPSULE"
+            android:value="true" />
+        <meta-data
+            android:name="vivo.sub_display.notification"
+            android:value="true" />
+
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
