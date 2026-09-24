@@ -136,6 +136,53 @@ object NotificationHelper {
             SoundMode.NORMAL -> android.R.drawable.ic_dialog_info
         }
 
+        val capsuleSummary = when {
+            remainingMinutes != null && remainingMinutes > 0 -> "${targetMode.displayName} ${remainingMinutes}m"
+            else -> targetMode.displayName
+        }
+
+        // OriginOS (vivo / iQOO) Origin Island (原子岛) and cross-OEM dynamic capsule extras
+        val islandExtras = android.os.Bundle().apply {
+            putInt("notification.superx.operation", 1) // 0=create, 1=update, 2=end
+            putInt("notification.superx.template", 2) // 2 = progress / timeline / countdown card
+            putInt("notification.superx.showNotify", 1)
+            putString("notification.superx.scene", "status")
+            putString("notification.superx.title", title)
+            putString("notification.superx.content", timeContent)
+            putString("notification.superx.subText", targetMode.displayName)
+            putString("notification.superx.capsuleText", capsuleSummary)
+            putString("notification.superx.capsuleTitle", title)
+            putString("notification.superx.capsuleContent", timeContent)
+
+            if (endMillis != null && endMillis > System.currentTimeMillis()) {
+                putLong("notification.superx.endTime", endMillis)
+                putLong("notification.superx.targetTime", endMillis)
+            }
+
+            try {
+                val baseInfos = org.json.JSONObject().apply {
+                    put("title", title)
+                    put("content", timeContent)
+                    put("subText", targetMode.displayName)
+                    put("capsuleText", capsuleSummary)
+                    if (remainingMinutes != null && totalMinutes != null && totalMinutes > 0) {
+                        val progress = ((totalMinutes - remainingMinutes).toFloat() / totalMinutes * 100).toInt().coerceIn(0, 100)
+                        put("progress", progress)
+                    }
+                    if (endMillis != null) {
+                        put("endTime", endMillis)
+                    }
+                }
+                putString("notification.superx.baseInfos", baseInfos.toString())
+            } catch (_: Throwable) { }
+
+            // Compatibility extras for Xiaomi HyperOS and OPPO/OnePlus ColorOS dynamic capsules
+            putBoolean("miui.capsule", true)
+            putString("miui.capsule.text", capsuleSummary)
+            putBoolean("coloros_capsule", true)
+            putString("coloros_capsule_content", capsuleSummary)
+        }
+
         // Custom Compact Layout with big media-style buttons
         val collapsedView = RemoteViews(context.packageName, R.layout.notification_vibe_collapsed).apply {
             setTextViewText(R.id.notif_title, title)
@@ -161,8 +208,10 @@ object NotificationHelper {
         }
 
         val highPriority = getNotifHighPriority(context)
+        val hasCountdown = endMillis != null && endMillis > System.currentTimeMillis()
+        val notifCategory = if (hasCountdown) NotificationCompat.CATEGORY_STOPWATCH else NotificationCompat.CATEGORY_STATUS
 
-        // Lock screen public version (prevents system from masking or stripping content on lock screen)
+        // Lock screen public version (prevents system from masking or stripping content on lock screen & AOD)
         val publicNotification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(iconRes)
             .setContentTitle(title)
@@ -172,10 +221,19 @@ object NotificationHelper {
             .setCustomBigContentView(collapsedView)
             .setPriority(if (highPriority) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_DEFAULT)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setCategory(notifCategory)
             .setOngoing(true)
             .setSilent(true)
+            .addExtras(islandExtras)
             .setContentIntent(openAppPI)
+            .apply {
+                if (hasCountdown && endMillis != null) {
+                    setUsesChronometer(true)
+                    setChronometerCountDown(true)
+                    setWhen(endMillis)
+                    setShowWhen(true)
+                }
+            }
             .build()
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -188,12 +246,22 @@ object NotificationHelper {
             .setPriority(if (highPriority) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_DEFAULT)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPublicVersion(publicNotification)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setCategory(notifCategory)
             .setOngoing(true)
-            .setShowWhen(false)
             .setSilent(true)
             .setOnlyAlertOnce(true)
+            .addExtras(islandExtras)
             .setContentIntent(openAppPI)
+            .apply {
+                if (hasCountdown && endMillis != null) {
+                    setUsesChronometer(true)
+                    setChronometerCountDown(true)
+                    setWhen(endMillis)
+                    setShowWhen(true)
+                } else {
+                    setShowWhen(false)
+                }
+            }
 
         if (canSkip) {
             builder.addAction(R.drawable.ic_widget_skip, "Skip :00", skipPI)
@@ -213,6 +281,7 @@ object NotificationHelper {
                     .setOngoing(true)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .addExtras(islandExtras)
                     .setContentIntent(openAppPI)
                     .build()
                 notificationManager.notify(NOTIFICATION_ID, fallback)
@@ -227,6 +296,20 @@ object NotificationHelper {
     fun dismissNotification(context: Context) {
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            // Inform OriginOS Origin Island to dismiss its punch-hole capsule immediately
+            try {
+                val endExtras = android.os.Bundle().apply {
+                    putInt("notification.superx.operation", 2) // 2 = end/dismiss island capsule
+                    putInt("notification.superx.showNotify", 0)
+                }
+                val dismissNotif = NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
+                    .addExtras(endExtras)
+                    .setSilent(true)
+                    .build()
+                notificationManager.notify(NOTIFICATION_ID, dismissNotif)
+            } catch (_: Throwable) { }
+
             notificationManager.cancel(NOTIFICATION_ID)
         } catch (e: Throwable) {
             e.printStackTrace()

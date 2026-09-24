@@ -6,7 +6,7 @@
 [![Android CI](https://img.shields.io/badge/Android-SDK%2026--34-green?logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-purple?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20M3-blue?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Release Version](https://img.shields.io/badge/version-v1.4.18-indigo)](app/build.gradle.kts)
+[![Release Version](https://img.shields.io/badge/version-v1.4.19-indigo)](app/build.gradle.kts)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
 ---
@@ -20,6 +20,12 @@ The app schedules exact system transitions between **Normal**, **Vibrate**, and 
 ---
 
 ## ✨ Features
+
+### 🏝️ OriginOS Origin Island & Dynamic Capsule
+- **Native OriginOS 4/5/6/7 Support**: Injects vivo's native `notification.superx` bundle extras and Android chronometer countdowns so active schedules and Quick Mute appear directly in **Origin Island (原子岛)** and punch-hole live capsules.
+- **Cross-OEM Status Bar Capsules**: Fully compatible with OnePlus/OPPO ColorOS Fluid Cloud, Xiaomi HyperOS Dynamic Notch, and Android 15/16 Rich Ongoing Notifications.
+- **Interactive Controls**: Tap to expand the island into a full interactive card with live countdown, progress bar, and instant **Skip to :00** and **End Now** actions.
+- **Always-On Display (AOD)**: Clean public notification payload ensures the live status badge remains visible on lock screens and AOD.
 
 ### ⏰ Automated Sound Schedules
 - **Precise 12-Hour AM/PM Time Setting**: Native 12-hour dial picker with dedicated AM/PM segmented selectors for rapid scheduling.
