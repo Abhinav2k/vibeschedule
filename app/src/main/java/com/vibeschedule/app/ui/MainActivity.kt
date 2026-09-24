@@ -20,8 +20,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import com.vibeschedule.app.ui.components.FloatingLiquidGlassBottomBar
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -42,8 +45,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -181,42 +182,19 @@ fun MainAppScreen(viewModel: MainViewModel) {
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 3.dp
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 12.dp),
+                contentAlignment = Alignment.Center
             ) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { previousTab = selectedTab; selectedTab = 0 },
-                    icon = {
-                        Icon(
-                            imageVector = if (selectedTab == 0) Icons.Rounded.Home else Icons.Outlined.Home,
-                            contentDescription = "Home"
-                        )
-                    },
-                    label = { Text("Home") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { previousTab = selectedTab; selectedTab = 1 },
-                    icon = {
-                        Icon(
-                            imageVector = if (selectedTab == 1) Icons.Rounded.Schedule else Icons.Outlined.Schedule,
-                            contentDescription = "Schedules"
-                        )
-                    },
-                    label = { Text("Schedules") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { previousTab = selectedTab; selectedTab = 2 },
-                    icon = {
-                        Icon(
-                            imageVector = if (selectedTab == 2) Icons.Rounded.Settings else Icons.Outlined.Settings,
-                            contentDescription = "Settings"
-                        )
-                    },
-                    label = { Text("Settings") }
+                FloatingLiquidGlassBottomBar(
+                    selectedTab = selectedTab,
+                    onTabSelected = { newTab ->
+                        previousTab = selectedTab
+                        selectedTab = newTab
+                    }
                 )
             }
         },

@@ -17,10 +17,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,9 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -135,3 +147,109 @@ fun GlowingIndicator(isActive: Boolean, modifier: Modifier = Modifier) {
         Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(color))
     }
 }
+
+data class NavTabItem(
+    val title: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector
+)
+
+/**
+ * Floating Liquid Glass Navigation Bar inspired by LastWave Native's liquid glass player card.
+ * Features a floating rounded capsule, specular top rim light, and fluid glowing active indicator.
+ */
+@Composable
+fun FloatingLiquidGlassBottomBar(
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val items = listOf(
+        NavTabItem("Home", Icons.Rounded.Home, Icons.Outlined.Home),
+        NavTabItem("Schedules", Icons.Rounded.Schedule, Icons.Outlined.Schedule),
+        NavTabItem("Settings", Icons.Rounded.Settings, Icons.Outlined.Settings)
+    )
+
+    val capsuleShape = CircleShape
+
+    Box(
+        modifier = modifier
+            .shadow(elevation = 20.dp, shape = capsuleShape, spotColor = Color.Black, ambientColor = Color.Black)
+            .clip(capsuleShape)
+            .background(Color(0xDC121318))
+            .border(
+                BorderStroke(
+                    1.dp,
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x66FFFFFF),
+                            Color(0x22FFFFFF),
+                            Color(0x0EFFFFFF)
+                        )
+                    )
+                ),
+                capsuleShape
+            )
+            .padding(horizontal = 6.dp, vertical = 6.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items.forEachIndexed { index, item ->
+                val isSelected = selectedTab == index
+                val animatedBg by animateColorAsState(
+                    targetValue = if (isSelected) Color.White else Color.Transparent,
+                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+                    label = "tabBg"
+                )
+                val animatedContentColor by animateColorAsState(
+                    targetValue = if (isSelected) Color(0xFF0A0A0F) else Color(0xFF9E9EA8),
+                    animationSpec = tween(durationMillis = 150),
+                    label = "tabContent"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(animatedBg)
+                        .then(
+                            if (isSelected) {
+                                Modifier.border(BorderStroke(0.5.dp, Color(0x66FFFFFF)), CircleShape)
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onTabSelected(index) }
+                        )
+                        .padding(horizontal = if (isSelected) 16.dp else 12.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                            contentDescription = item.title,
+                            tint = animatedContentColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = item.title,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = animatedContentColor,
+                            letterSpacing = (-0.2).sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

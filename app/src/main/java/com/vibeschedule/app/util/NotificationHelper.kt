@@ -22,7 +22,7 @@ import java.util.Date
 import java.util.Locale
 
 object NotificationHelper {
-    const val CHANNEL_ID = "vibe_schedule_active_v6"
+    const val CHANNEL_ID = "vibe_schedule_active_v7"
     const val NOTIFICATION_ID = 8823
 
     /**
@@ -176,11 +176,23 @@ object NotificationHelper {
                 putString("notification.superx.baseInfos", baseInfos.toString())
             } catch (_: Throwable) { }
 
-            // Compatibility extras for Xiaomi HyperOS and OPPO/OnePlus ColorOS dynamic capsules
+            // Compatibility extras for Xiaomi HyperOS, OPPO/OnePlus ColorOS, and Vivo live capsules (same format as Swiggy/Zomato)
             putBoolean("miui.capsule", true)
             putString("miui.capsule.text", capsuleSummary)
             putBoolean("coloros_capsule", true)
             putString("coloros_capsule_content", capsuleSummary)
+            putBoolean("vivo.live_capsule.enable", true)
+            putString("vivo.live_capsule.title", title)
+            putString("vivo.live_capsule.content", capsuleSummary)
+            putBoolean("com.vivo.notification.capsule", true)
+            putString("com.vivo.notification.capsule.text", capsuleSummary)
+            putBoolean("android.live_activity", true)
+            if (totalMinutes != null && totalMinutes > 0 && remainingMinutes != null) {
+                val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
+                putInt("android.progress", elapsed)
+                putInt("android.progressMax", totalMinutes)
+                putBoolean("android.progressIndeterminate", false)
+            }
         }
 
         // Custom Compact Layout with big media-style buttons
@@ -209,7 +221,7 @@ object NotificationHelper {
 
         val highPriority = getNotifHighPriority(context)
         val hasCountdown = endMillis != null && endMillis > System.currentTimeMillis()
-        val notifCategory = if (hasCountdown) NotificationCompat.CATEGORY_STOPWATCH else NotificationCompat.CATEGORY_STATUS
+        val notifCategory = if (hasCountdown) NotificationCompat.CATEGORY_PROGRESS else NotificationCompat.CATEGORY_STATUS
 
         // Lock screen public version (prevents system from masking or stripping content on lock screen & AOD)
         val publicNotification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -232,6 +244,10 @@ object NotificationHelper {
                     setChronometerCountDown(true)
                     setWhen(endMillis)
                     setShowWhen(true)
+                }
+                if (totalMinutes != null && totalMinutes > 0 && remainingMinutes != null) {
+                    val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
+                    setProgress(totalMinutes, elapsed, false)
                 }
             }
             .build()
@@ -260,6 +276,10 @@ object NotificationHelper {
                     setShowWhen(true)
                 } else {
                     setShowWhen(false)
+                }
+                if (totalMinutes != null && totalMinutes > 0 && remainingMinutes != null) {
+                    val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
+                    setProgress(totalMinutes, elapsed, false)
                 }
             }
 
@@ -325,24 +345,20 @@ object NotificationHelper {
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v3")
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v4")
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v5")
+                notificationManager.deleteNotificationChannel("vibe_schedule_active_v6")
             } catch (e: Exception) { }
 
-            val highPriority = getNotifHighPriority(context)
-            val importance = if (highPriority)
-                NotificationManager.IMPORTANCE_HIGH
-            else
-                NotificationManager.IMPORTANCE_DEFAULT
-
+            // OriginOS / Live Capsule requires IMPORTANCE_HIGH to display as punch-hole pill
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 context.getString(R.string.channel_name),
-                importance
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = context.getString(R.string.channel_description)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setSound(null, null)
                 enableVibration(false)
-                setShowBadge(false)
+                setShowBadge(true)
             }
             notificationManager.createNotificationChannel(channel)
         }

@@ -82,7 +82,7 @@ export function App() {
   return (
     <div className="min-h-screen bg-[#121316] text-[#e3e2e6] flex flex-col selection:bg-[#bac3ff]/30 selection:text-[#bac3ff] relative font-sans">
       {/* App Shell Container */}
-      <div className="relative z-10 flex-1 flex flex-col w-full max-w-lg mx-auto pb-16">
+      <div className="relative z-10 flex-1 flex flex-col w-full max-w-lg mx-auto pb-28">
         {/* Clean Material 3 Top App Bar */}
         <header className="sticky top-0 z-30 pt-3 pb-3 px-4 bg-[#121316]/95 backdrop-blur-md border-b border-[#45464f]/30">
           <div className="flex items-center justify-between gap-3">
@@ -173,15 +173,15 @@ export function App() {
             type="button"
             onClick={handleOpenAdd}
             aria-label="Add Schedule"
-            className="fixed bottom-20 right-6 z-40 w-14 h-14 rounded-2xl bg-[#bac3ff] text-[#08218a] flex items-center justify-center shadow-lg hover:bg-[#c9d0ff] active:scale-95 transition-all duration-150 cursor-pointer"
+            className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-2xl bg-[#bac3ff] text-[#08218a] flex items-center justify-center shadow-2xl hover:bg-[#c9d0ff] active:scale-95 transition-all duration-150 cursor-pointer border border-white/20"
           >
             <Plus className="w-7 h-7 stroke-[2.5]" />
           </button>
         )}
 
-        {/* Material 3 Bottom Navigation Bar */}
-        <div className="fixed bottom-0 left-0 right-0 z-30">
-          <div className="max-w-lg mx-auto">
+        {/* Floating Liquid Glass Tab Switcher Capsule (LastWave Native inspired) */}
+        <div className="fixed bottom-5 sm:bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none px-4">
+          <div className="pointer-events-auto max-w-fit">
             <MD3BottomNav
               selectedTab={selectedTab}
               onTabSelected={(idx) => setSelectedTab(idx)}
