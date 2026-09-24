@@ -57,6 +57,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -128,7 +129,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         color = MaterialTheme.colorScheme.primaryContainer,
                         tonalElevation = 2.dp
                     ) {
-                        Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Rounded.Vibration,
                                 contentDescription = "VibeSchedule",
