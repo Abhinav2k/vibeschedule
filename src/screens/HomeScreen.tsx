@@ -80,7 +80,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <button
               type="button"
               onClick={onCancelQuickMute}
-              className="px-4 py-2 rounded-full bg-[#e5bad8] text-[#45263f] text-xs font-semibold hover:bg-[#f0c8e4] transition-all active:scale-95"
+              className="h-7 px-3.5 rounded-full bg-[#e5bad8] text-[#45263f] text-xs font-semibold hover:bg-[#f0c8e4] transition-all active:scale-95 flex items-center justify-center cursor-pointer shadow-xs"
             >
               Cancel
             </button>
@@ -235,7 +235,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <button
                 type="button"
                 onClick={onCancelPause}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#bac3ff] text-[#08218a] font-semibold text-xs hover:bg-[#c9d0ff] transition-all active:scale-95"
+                className="flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-[#bac3ff] text-[#08218a] font-semibold text-xs hover:bg-[#c9d0ff] transition-all active:scale-95 shadow-xs"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Restore
@@ -245,9 +245,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 type="button"
                 onClick={onPauseUntilNextOClock}
                 disabled={!isPauseEligible}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs font-semibold transition-all ${
                   isPauseEligible
-                    ? 'bg-[#bac3ff] text-[#08218a] hover:bg-[#c9d0ff] active:scale-95 cursor-pointer'
+                    ? 'bg-[#bac3ff] text-[#08218a] hover:bg-[#c9d0ff] active:scale-95 cursor-pointer shadow-xs'
                     : 'bg-[#292a2d] text-[#8f909a] cursor-not-allowed border border-[#45464f]/30'
                 }`}
               >

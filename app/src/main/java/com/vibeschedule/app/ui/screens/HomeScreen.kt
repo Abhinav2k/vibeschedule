@@ -181,7 +181,9 @@ fun HomeScreen(
                                 containerColor = MaterialTheme.colorScheme.tertiary,
                                 contentColor = MaterialTheme.colorScheme.onTertiary
                             ),
-                            shape = CircleShape
+                            shape = CircleShape,
+                            modifier = Modifier.height(32.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 2.dp)
                         ) {
                             Text("Cancel", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         }
@@ -442,7 +444,9 @@ fun HomeScreen(
                 if (isPaused) {
                     FilledTonalButton(
                         onClick = { viewModel.restoreSchedule() },
-                        shape = CircleShape
+                        shape = CircleShape,
+                        modifier = Modifier.height(34.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 2.dp)
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -452,7 +456,9 @@ fun HomeScreen(
                     Button(
                         onClick = { viewModel.skipPeriod() },
                         enabled = isPauseEligible,
-                        shape = CircleShape
+                        shape = CircleShape,
+                        modifier = Modifier.height(34.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 2.dp)
                     ) {
                         if (!isPauseEligible) {
                             Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
