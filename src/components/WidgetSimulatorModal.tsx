@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Smartphone, SkipForward, Ban, Sparkles, Volume2, VolumeX, Vibrate } from 'lucide-react';
+import { X, Smartphone, SkipForward, Ban, Sparkles, Volume2, VolumeX, Vibrate, Bell } from 'lucide-react';
 import { ScheduleRule } from '../types';
 
 interface WidgetSimulatorModalProps {
@@ -10,6 +10,7 @@ interface WidgetSimulatorModalProps {
   pausedUntilMillis: number | null;
   onCancelActive: () => void;
   onSkipPeriod: () => void;
+  onQuickMute?: (minutes: number) => void;
 }
 
 export const WidgetSimulatorModal: React.FC<WidgetSimulatorModalProps> = ({
@@ -20,30 +21,28 @@ export const WidgetSimulatorModal: React.FC<WidgetSimulatorModalProps> = ({
   pausedUntilMillis,
   onCancelActive,
   onSkipPeriod,
+  onQuickMute,
 }) => {
-  const [activeTab, setActiveTab] = useState<'widget' | 'island'>('island');
+  const [activeTab, setActiveTab] = useState<'widget' | 'island'>('widget');
   const [isIslandExpanded, setIsIslandExpanded] = useState(true);
+  const [showQuickTimerPopup, setShowQuickTimerPopup] = useState(false);
 
   if (!isOpen) return null;
 
-  let statusText = '○ Nothing running';
   let modeName = 'Normal';
   let isRunning = false;
   let timeDetail = 'Ready';
 
   if (quickMuteUntilMillis !== null) {
     const remainingMins = Math.max(1, Math.round((quickMuteUntilMillis - Date.now()) / 60000));
-    statusText = '● Timer running (Quick Mute)';
     modeName = 'Vibrate';
     isRunning = true;
     timeDetail = `${remainingMins}m remaining`;
   } else if (pausedUntilMillis !== null) {
-    statusText = '● Schedule paused until :00';
     modeName = 'Normal';
     isRunning = true;
     timeDetail = 'Skipped until top of hour';
   } else if (activeSchedule !== null) {
-    statusText = `● Schedule running: ${activeSchedule.title}`;
     modeName = activeSchedule.targetMode.toUpperCase();
     isRunning = true;
     timeDetail = `Active until ${activeSchedule.endHour.toString().padStart(2, '0')}:${activeSchedule.endMinute.toString().padStart(2, '0')}`;
@@ -70,18 +69,6 @@ export const WidgetSimulatorModal: React.FC<WidgetSimulatorModalProps> = ({
         <div className="flex rounded-xl bg-black/40 p-1 mt-4 border border-white/10">
           <button
             type="button"
-            onClick={() => setActiveTab('island')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-              activeTab === 'island'
-                ? 'bg-white text-black shadow-sm'
-                : 'text-neutral-400 hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Origin Island
-          </button>
-          <button
-            type="button"
             onClick={() => setActiveTab('widget')}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
               activeTab === 'widget'
@@ -92,39 +79,123 @@ export const WidgetSimulatorModal: React.FC<WidgetSimulatorModalProps> = ({
             <Smartphone className="w-3.5 h-3.5" />
             2×1 Widget
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('island')}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              activeTab === 'island'
+                ? 'bg-white text-black shadow-sm'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Origin Island
+          </button>
         </div>
 
         <div className="mt-4">
-          {activeTab === 'island' ? (
+          {activeTab === 'widget' ? (
             <div>
-              <p className="text-xs text-neutral-400 mb-2">
-                OriginOS (vivo / iQOO) Origin Island (原子岛) & status bar live capsule:
+              <p className="text-xs text-neutral-400 mb-3">
+                {isRunning
+                  ? 'Active schedule or timer running (Default view with indicator removed):'
+                  : 'Idle state (Only a ring symbol — tap to choose quick timer):'}
               </p>
 
-              {/* Simulated Phone Top Punch-Hole Screen */}
-              <div className="rounded-2xl bg-neutral-950 border border-white/20 p-4 pt-3 backdrop-blur-2xl shadow-xl flex flex-col items-center">
-                {/* Punch-hole Camera */}
-                <div className="w-3 h-3 rounded-full bg-neutral-900 border border-neutral-700 mb-2 shadow-inner" />
+              {isRunning ? (
+                /* Active state: Default two big buttons edge-to-edge (indicator removed) */
+                <div className="rounded-2xl bg-black/80 border border-white/25 p-3 backdrop-blur-2xl shadow-xl">
+                  <div className="grid grid-cols-2 gap-2.5 h-16">
+                    <button
+                      type="button"
+                      onClick={onSkipPeriod}
+                      className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/15 transition-all active:scale-95"
+                    >
+                      <SkipForward className="w-5 h-5 text-white" />
+                      <span className="text-[10px] text-neutral-300 font-medium">Skip :00</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onCancelActive}
+                      className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-white text-black text-xs font-bold hover:bg-neutral-200 transition-all active:scale-95 shadow-xs"
+                    >
+                      <Ban className="w-5 h-5 text-black" />
+                      <span className="text-[10px] text-neutral-900 font-bold">End Now</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Idle state: Only a ring symbol centered */
+                <div className="rounded-2xl bg-black/80 border border-white/25 p-4 backdrop-blur-2xl shadow-xl flex flex-col items-center justify-center h-28">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickTimerPopup(true)}
+                    className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 flex items-center justify-center text-white transition-all active:scale-95 shadow-lg group"
+                    title="Tap to select quick timer"
+                  >
+                    <Bell className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+                  </button>
+                  <span className="text-[10px] text-neutral-400 mt-2 font-mono">
+                    Tap ring to set quick timer
+                  </span>
+                </div>
+              )}
 
-                {/* Compact Island Pill (Tap to toggle expanded) */}
+              {/* Popup dialog simulator when user taps the ring symbol */}
+              {showQuickTimerPopup && (
+                <div className="mt-3 p-3.5 rounded-2xl bg-neutral-800/95 border border-white/20 shadow-2xl animate-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10">
+                    <div className="flex items-center gap-1.5">
+                      <Bell className="w-3.5 h-3.5 text-white" />
+                      <span className="text-xs font-bold text-white">Select Quick Timer</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickTimerPopup(false)}
+                      className="text-neutral-400 hover:text-white p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 mt-2">
+                    {[15, 30, 45, 60, 120, 240].map((min) => (
+                      <button
+                        key={min}
+                        type="button"
+                        onClick={() => {
+                          onQuickMute?.(min);
+                          setShowQuickTimerPopup(false);
+                        }}
+                        className="py-2 px-1 text-center rounded-xl bg-white/10 hover:bg-white text-white hover:text-black text-xs font-bold transition-all active:scale-95 border border-white/10"
+                      >
+                        {min >= 60 ? `${min / 60}h` : `${min}m`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs text-neutral-400 mb-2">
+                Vivo OriginOS dynamic notch capsule / island:
+              </p>
+
+              {/* Vivo Origin Island Mock */}
+              <div className="p-4 rounded-2xl bg-neutral-950 border border-white/10 text-center">
                 <div
                   onClick={() => setIsIslandExpanded(!isIslandExpanded)}
-                  className="cursor-pointer transition-all duration-300 w-full"
+                  className="inline-block cursor-pointer select-none transition-all duration-300"
                 >
                   {!isIslandExpanded ? (
-                    <div className="mx-auto max-w-[210px] h-8 rounded-full bg-black border border-white/25 px-3 flex items-center justify-between text-xs shadow-lg hover:border-white/50">
-                      <div className="flex items-center gap-1.5 text-neutral-300">
-                        {modeName === 'Vibrate' ? (
-                          <Vibrate className="w-3.5 h-3.5 text-amber-400" />
-                        ) : modeName === 'Silent' ? (
-                          <VolumeX className="w-3.5 h-3.5 text-red-400" />
-                        ) : (
-                          <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
-                        )}
-                        <span className="font-semibold">{modeName}</span>
-                      </div>
-                      <span className="text-[11px] font-mono text-neutral-400">
-                        {isRunning ? timeDetail.split(' ')[0] : 'Idle'}
+                    /* Collapsed Origin Island Capsule */
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/90 border border-white/20 shadow-lg hover:border-white/40 transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-xs font-bold text-white tracking-wide">
+                        {activeSchedule?.title || (quickMuteUntilMillis ? 'Quick Mute' : 'Normal')}
+                      </span>
+                      <span className="text-[10px] text-neutral-400">
+                        {modeName}
                       </span>
                     </div>
                   ) : (
@@ -189,43 +260,6 @@ export const WidgetSimulatorModal: React.FC<WidgetSimulatorModalProps> = ({
                 <p className="text-[11px] text-neutral-500 mt-2.5">
                   Tap capsule to {isIslandExpanded ? 'collapse' : 'expand'}
                 </p>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p className="text-xs text-neutral-400 mb-3">
-                Android home screen widget (VibeWidgetProvider 2×1):
-              </p>
-
-              {/* 2x1 Widget representation */}
-              <div className="rounded-2xl bg-black/80 border border-white/25 p-4 backdrop-blur-2xl shadow-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] font-mono tracking-wider font-semibold text-neutral-200">
-                    {statusText}
-                  </span>
-                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={onSkipPeriod}
-                    disabled={!isRunning}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/15 transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
-                  >
-                    <SkipForward className="w-3.5 h-3.5" />
-                    Skip to :00
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onCancelActive}
-                    disabled={!isRunning}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white text-black text-xs font-bold hover:bg-neutral-200 transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 shadow-xs"
-                  >
-                    <Ban className="w-3.5 h-3.5" />
-                    End Now
-                  </button>
-                </div>
               </div>
             </div>
           )}

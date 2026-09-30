@@ -213,6 +213,10 @@ export function App() {
             activeSchedule={activeSchedule}
             quickMuteUntilMillis={quickMuteUntilMillis}
             pausedUntilMillis={pausedUntilMillis}
+            onQuickMute={(mins) => {
+              requestQuickMute(mins);
+              triggerToast(`Quick timer started (${mins}m)`);
+            }}
             onCancelActive={() => {
               if (quickMuteUntilMillis !== null) cancelQuickMute();
               else if (pausedUntilMillis !== null) cancelPause();

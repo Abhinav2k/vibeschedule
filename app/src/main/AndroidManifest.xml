@@ -40,6 +40,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Popup dialog for quick timer selection from the widget -->
+        <activity
+            android:name=".ui.QuickTimerPopupActivity"
+            android:exported="true"
+            android:theme="@style/Theme.VibeSchedule.Dialog"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:windowSoftInputMode="adjustNothing" />
+
         <!-- Receiver for Scheduled Start/End Alarms -->
         <receiver
             android:name=".receiver.AlarmReceiver"
