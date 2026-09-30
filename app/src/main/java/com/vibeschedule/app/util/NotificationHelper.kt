@@ -6,7 +6,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
@@ -22,8 +25,11 @@ import java.util.Date
 import java.util.Locale
 
 object NotificationHelper {
-    const val CHANNEL_ID = "vibe_schedule_active_v7"
+    const val CHANNEL_ID = "vibe_schedule_active_v8"
     const val NOTIFICATION_ID = 8823
+
+    @Volatile
+    private var activeSessionKey: String? = null
 
     /**
      * Helper to show active status notification directly for a ScheduleRule
@@ -70,6 +76,7 @@ object NotificationHelper {
     /**
      * Displays a rich, lock-screen-visible status notification with an active progress bar
      * and interactive [End Now] & [Skip to :00] action buttons visible directly without expanding.
+     * Integrates with Vivo/iQOO Origin Island (Live Capsule) and cross-OEM pill heads-up notifications.
      */
     fun showActiveStatusNotification(
         context: Context,
@@ -141,12 +148,58 @@ object NotificationHelper {
             else -> targetMode.displayName
         }
 
+        // Manage Origin Island session lifecycle: 0 = create, 1 = update, 2 = end
+        val sessionKey = "${title}_${targetMode.name}_${endMillis ?: 0L}"
+        val isNewSession = (activeSessionKey == null || activeSessionKey != sessionKey)
+
+        if (activeSessionKey != null && activeSessionKey != sessionKey) {
+            // Cleanly end previous island session if changing rules or starting a different timer
+            try {
+                val endExtras = Bundle().apply {
+                    putInt("notification.superx.operation", 2)
+                    putBoolean("notification.superx.showNotify", false)
+                    putInt("notification.superx.showNotify", 0)
+                    putString("notification.superx.scene", "COUNT_DOWN")
+                }
+                val dismissNotif = NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setSmallIcon(iconRes)
+                    .addExtras(endExtras)
+                    .setOngoing(false)
+                    .setLocalOnly(true)
+                    .setSilent(true)
+                    .setTimeoutAfter(1_000L)
+                    .build()
+                notificationManager.notify(NOTIFICATION_ID, dismissNotif)
+            } catch (_: Throwable) { }
+        }
+
+        val operation = if (isNewSession) 0 else 1
+        activeSessionKey = sessionKey
+
         // OriginOS (vivo / iQOO) Origin Island (原子岛) and cross-OEM dynamic capsule extras
-        val islandExtras = android.os.Bundle().apply {
-            putInt("notification.superx.operation", 1) // 0=create, 1=update, 2=end
-            putInt("notification.superx.template", 2) // 2 = progress / timeline / countdown card
+        val islandExtras = Bundle().apply {
+            // 1. Vivo Origin Island (SuperX / Live Capsule) protocol
+            putInt("notification.superx.operation", operation) // 0=create, 1=update, 2=end
+            putInt("notification.superx.template", 1) // 1 = standard notification card
+            putInt("notification.superx.templateType", 1)
+            putBoolean("notification.superx.showNotify", true)
             putInt("notification.superx.showNotify", 1)
-            putString("notification.superx.scene", "status")
+            putString("notification.superx.scene", "COUNT_DOWN")
+            putParcelable("notification.superx.clickResp", openAppPI)
+
+            // Base info bundle (Icon, Title, Content) required by Vivo SystemUI plugin
+            val baseInfoBundle = Bundle().apply {
+                try {
+                    putParcelable("notification.superx.baseInfos.icon", Icon.createWithResource(context, iconRes))
+                } catch (_: Throwable) { }
+                putCharSequence("notification.superx.baseInfos.title", title)
+                putCharSequence("notification.superx.baseInfos.content", timeContent)
+                putCharSequence("notification.superx.baseInfos.subText", targetMode.displayName)
+                putCharSequence("notification.superx.baseInfos.capsuleText", capsuleSummary)
+            }
+            putBundle("notification.superx.baseInfos", baseInfoBundle)
+
+            // Direct root keys for OriginOS variants
             putString("notification.superx.title", title)
             putString("notification.superx.content", timeContent)
             putString("notification.superx.subText", targetMode.displayName)
@@ -160,11 +213,18 @@ object NotificationHelper {
             }
 
             try {
-                val baseInfos = org.json.JSONObject().apply {
+                val baseInfosJson = org.json.JSONObject().apply {
+                    put("operation", operation)
+                    put("scene", "COUNT_DOWN")
+                    put("templateType", 1)
+                    put("showNotify", true)
                     put("title", title)
                     put("content", timeContent)
                     put("subText", targetMode.displayName)
                     put("capsuleText", capsuleSummary)
+                    put("capsuleData", org.json.JSONObject().apply {
+                        put("bgColor", "#1E1E2E")
+                    })
                     if (remainingMinutes != null && totalMinutes != null && totalMinutes > 0) {
                         val progress = ((totalMinutes - remainingMinutes).toFloat() / totalMinutes * 100).toInt().coerceIn(0, 100)
                         put("progress", progress)
@@ -173,10 +233,11 @@ object NotificationHelper {
                         put("endTime", endMillis)
                     }
                 }
-                putString("notification.superx.baseInfos", baseInfos.toString())
+                putString("notification.superx.baseInfos.json", baseInfosJson.toString())
+                putString("AndroidVivoLiveMessage", baseInfosJson.toString())
             } catch (_: Throwable) { }
 
-            // Compatibility extras for Xiaomi HyperOS, OPPO/OnePlus ColorOS, and Vivo live capsules (same format as Swiggy/Zomato)
+            // Compatibility extras for Xiaomi HyperOS, OPPO/OnePlus ColorOS, and Vivo live capsules
             putBoolean("miui.capsule", true)
             putString("miui.capsule.text", capsuleSummary)
             putBoolean("coloros_capsule", true)
@@ -236,6 +297,8 @@ object NotificationHelper {
             .setCategory(notifCategory)
             .setOngoing(true)
             .setSilent(true)
+            .setLocalOnly(true)
+            .setTimeoutAfter(8 * 60 * 60 * 1_000L)
             .addExtras(islandExtras)
             .setContentIntent(openAppPI)
             .apply {
@@ -266,6 +329,8 @@ object NotificationHelper {
             .setOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)
+            .setLocalOnly(true)
+            .setTimeoutAfter(8 * 60 * 60 * 1_000L)
             .addExtras(islandExtras)
             .setContentIntent(openAppPI)
             .apply {
@@ -299,6 +364,8 @@ object NotificationHelper {
                     .setContentText(timeContent)
                     .setSubText(targetMode.displayName)
                     .setOngoing(true)
+                    .setLocalOnly(true)
+                    .setTimeoutAfter(8 * 60 * 60 * 1_000L)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .addExtras(islandExtras)
@@ -317,18 +384,31 @@ object NotificationHelper {
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             // Inform OriginOS Origin Island to dismiss its punch-hole capsule immediately
-            try {
-                val endExtras = android.os.Bundle().apply {
-                    putInt("notification.superx.operation", 2) // 2 = end/dismiss island capsule
-                    putInt("notification.superx.showNotify", 0)
-                }
-                val dismissNotif = NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
-                    .addExtras(endExtras)
-                    .setSilent(true)
-                    .build()
-                notificationManager.notify(NOTIFICATION_ID, dismissNotif)
-            } catch (_: Throwable) { }
+            if (activeSessionKey != null) {
+                try {
+                    val endExtras = Bundle().apply {
+                        putInt("notification.superx.operation", 2) // 2 = end/dismiss island capsule
+                        putBoolean("notification.superx.showNotify", false)
+                        putInt("notification.superx.showNotify", 0)
+                        putString("notification.superx.scene", "COUNT_DOWN")
+                        val baseInfoBundle = Bundle().apply {
+                            putCharSequence("notification.superx.baseInfos.title", "")
+                            putCharSequence("notification.superx.baseInfos.content", "")
+                        }
+                        putBundle("notification.superx.baseInfos", baseInfoBundle)
+                    }
+                    val dismissNotif = NotificationCompat.Builder(context, CHANNEL_ID)
+                        .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
+                        .addExtras(endExtras)
+                        .setOngoing(false)
+                        .setLocalOnly(true)
+                        .setTimeoutAfter(3_000L)
+                        .setSilent(true)
+                        .build()
+                    notificationManager.notify(NOTIFICATION_ID, dismissNotif)
+                } catch (_: Throwable) { }
+                activeSessionKey = null
+            }
 
             notificationManager.cancel(NOTIFICATION_ID)
         } catch (e: Throwable) {
@@ -346,6 +426,7 @@ object NotificationHelper {
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v4")
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v5")
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_v6")
+                notificationManager.deleteNotificationChannel("vibe_schedule_active_v7")
             } catch (e: Exception) { }
 
             // OriginOS / Live Capsule requires IMPORTANCE_HIGH to display as punch-hole pill
@@ -361,6 +442,12 @@ object NotificationHelper {
                 setShowBadge(true)
             }
             notificationManager.createNotificationChannel(channel)
+
+            // Attempt to configure Vivo SuperX setting in system secure table if permission allows
+            try {
+                val pkgKey = "superx_notification_${context.packageName.replace('.', '_')}"
+                Settings.Secure.putString(context.contentResolver, pkgKey, "1")
+            } catch (_: Throwable) { }
         }
     }
 }

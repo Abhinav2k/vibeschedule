@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -7,6 +8,9 @@
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="true"
@@ -21,7 +25,13 @@
             android:name="vivo.origin.island.support"
             android:value="true" />
         <meta-data
+            android:name="vivo.superx.support"
+            android:value="true" />
+        <meta-data
             android:name="com.vivo.notification.capsule"
+            android:value="true" />
+        <meta-data
+            android:name="com.vivo.notification.superx"
             android:value="true" />
         <meta-data
             android:name="android.app.feature.CAPSULE"
