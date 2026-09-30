@@ -97,13 +97,30 @@ export const WidgetSimulatorModal: React.FC<WidgetSimulatorModalProps> = ({
           {activeTab === 'widget' ? (
             <div>
               <p className="text-xs text-neutral-400 mb-3">
-                {isRunning
-                  ? 'Active schedule or timer running (Default view with indicator removed):'
+                {quickMuteUntilMillis !== null
+                  ? 'Timer is running (Red X button to cancel — no skip button):'
+                  : isRunning
+                  ? 'Active schedule running (Default view with indicator removed):'
                   : 'Idle state (Only a ring symbol — tap to choose quick timer):'}
               </p>
 
-              {isRunning ? (
-                /* Active state: Default two big buttons edge-to-edge (indicator removed) */
+              {quickMuteUntilMillis !== null ? (
+                /* Timer running state: Red X button centered (no skip button) */
+                <div className="rounded-2xl bg-black/80 border border-red-500/30 p-4 backdrop-blur-2xl shadow-xl flex flex-col items-center justify-center h-28">
+                  <button
+                    type="button"
+                    onClick={onCancelActive}
+                    className="w-14 h-14 rounded-full bg-red-950/70 hover:bg-red-900 border border-red-500/60 flex items-center justify-center text-red-400 hover:text-white transition-all active:scale-95 shadow-lg group"
+                    title="Cancel quick timer"
+                  >
+                    <X className="w-7 h-7 text-red-500 group-hover:scale-110 transition-transform stroke-[2.5]" />
+                  </button>
+                  <span className="text-[10px] text-red-400 mt-2 font-mono font-medium">
+                    Tap Red X to cancel timer
+                  </span>
+                </div>
+              ) : isRunning ? (
+                /* Schedule active state: Default two big buttons edge-to-edge (indicator removed) */
                 <div className="rounded-2xl bg-black/80 border border-white/25 p-3 backdrop-blur-2xl shadow-xl">
                   <div className="grid grid-cols-2 gap-2.5 h-16">
                     <button

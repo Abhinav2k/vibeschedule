@@ -151,21 +151,18 @@ class VibeWidgetProvider : AppWidgetProvider() {
             notificationManager.activeNotifications.any { it.id == NotificationHelper.NOTIFICATION_ID }
         } catch (e: Exception) { false }
 
-        private fun isScheduleOrTimerRunning(context: Context): Boolean {
+        private fun isQuickMuteActive(context: Context): Boolean {
             val repo = ScheduleRepository(context)
-
-            // 1. Check persistent Quick Mute timer
             val qmUntil = repo.getQuickMuteUntil()
-            if (qmUntil != null && qmUntil > System.currentTimeMillis()) return true
+            return qmUntil != null && qmUntil > System.currentTimeMillis()
+        }
 
-            // 2. Check persistent Pause
+        private fun isScheduleActive(context: Context): Boolean {
+            val repo = ScheduleRepository(context)
             val pauseUntil = repo.getPauseUntil()
             if (pauseUntil != null && pauseUntil > System.currentTimeMillis()) return true
-
-            // 3. Active schedule rule
             if (getActiveScheduleRule(context) != null) return true
 
-            // 4. Fallback check: active notification
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             return try {
                 notificationManager.activeNotifications.any { it.id == NotificationHelper.NOTIFICATION_ID }
@@ -180,39 +177,57 @@ class VibeWidgetProvider : AppWidgetProvider() {
 
         private fun updateAppWidget(context: Context, manager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_vibe_schedule)
-            val isRunning = isScheduleOrTimerRunning(context)
+            val isTimerRunning = isQuickMuteActive(context)
+            val isScheduleRunning = !isTimerRunning && isScheduleActive(context)
 
-            if (isRunning) {
-                // Active state: Show default buttons (Skip & Cancel) edge-to-edge with indicator removed
-                views.setViewVisibility(R.id.layout_widget_idle, View.GONE)
-                views.setViewVisibility(R.id.layout_widget_active, View.VISIBLE)
+            when {
+                isTimerRunning -> {
+                    // Timer running: Show only the Red X button (no skip button)
+                    views.setViewVisibility(R.id.layout_widget_idle, View.GONE)
+                    views.setViewVisibility(R.id.layout_widget_active, View.GONE)
+                    views.setViewVisibility(R.id.layout_widget_timer, View.VISIBLE)
 
-                val skipIntent = Intent(context, VibeWidgetProvider::class.java).apply { action = ACTION_WIDGET_SKIP_PERIOD }
-                views.setOnClickPendingIntent(
-                    R.id.btn_widget_skip,
-                    PendingIntent.getBroadcast(context, 202, skipIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-                )
-
-                val cancelIntent = Intent(context, VibeWidgetProvider::class.java).apply { action = ACTION_WIDGET_CANCEL_ACTIVE }
-                views.setOnClickPendingIntent(
-                    R.id.btn_widget_cancel,
-                    PendingIntent.getBroadcast(context, 201, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-                )
-            } else {
-                // Idle state: Show ONLY the ring symbol. Tapping opens the quick timer popup dialog
-                views.setViewVisibility(R.id.layout_widget_active, View.GONE)
-                views.setViewVisibility(R.id.layout_widget_idle, View.VISIBLE)
-
-                val popupIntent = Intent(context, QuickTimerPopupActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    val cancelIntent = Intent(context, VibeWidgetProvider::class.java).apply { action = ACTION_WIDGET_CANCEL_ACTIVE }
+                    views.setOnClickPendingIntent(
+                        R.id.btn_widget_timer_cancel,
+                        PendingIntent.getBroadcast(context, 203, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                    )
                 }
-                val pendingIntent = PendingIntent.getActivity(
-                    context,
-                    301,
-                    popupIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                views.setOnClickPendingIntent(R.id.btn_widget_ring, pendingIntent)
+                isScheduleRunning -> {
+                    // Schedule running: Show default buttons (Skip & Cancel) edge-to-edge
+                    views.setViewVisibility(R.id.layout_widget_idle, View.GONE)
+                    views.setViewVisibility(R.id.layout_widget_timer, View.GONE)
+                    views.setViewVisibility(R.id.layout_widget_active, View.VISIBLE)
+
+                    val skipIntent = Intent(context, VibeWidgetProvider::class.java).apply { action = ACTION_WIDGET_SKIP_PERIOD }
+                    views.setOnClickPendingIntent(
+                        R.id.btn_widget_skip,
+                        PendingIntent.getBroadcast(context, 202, skipIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                    )
+
+                    val cancelIntent = Intent(context, VibeWidgetProvider::class.java).apply { action = ACTION_WIDGET_CANCEL_ACTIVE }
+                    views.setOnClickPendingIntent(
+                        R.id.btn_widget_cancel,
+                        PendingIntent.getBroadcast(context, 201, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                    )
+                }
+                else -> {
+                    // Idle state: Show ONLY the ring symbol. Tapping opens the quick timer popup dialog
+                    views.setViewVisibility(R.id.layout_widget_active, View.GONE)
+                    views.setViewVisibility(R.id.layout_widget_timer, View.GONE)
+                    views.setViewVisibility(R.id.layout_widget_idle, View.VISIBLE)
+
+                    val popupIntent = Intent(context, QuickTimerPopupActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
+                    val pendingIntent = PendingIntent.getActivity(
+                        context,
+                        301,
+                        popupIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    views.setOnClickPendingIntent(R.id.btn_widget_ring, pendingIntent)
+                }
             }
 
             manager.updateAppWidget(appWidgetId, views)
