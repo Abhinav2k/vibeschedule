@@ -6,7 +6,7 @@
 [![Android CI](https://img.shields.io/badge/Android-SDK%2026--34-green?logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-purple?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20M3-blue?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Release Version](https://img.shields.io/badge/version-v1.4.27-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
+[![Release Version](https://img.shields.io/badge/version-v1.4.28-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
 ---
@@ -23,7 +23,7 @@ The app schedules exact system transitions between **Normal**, **Vibrate**, and 
 
 Get the latest signed APK directly from GitHub Releases:
 
-- 📦 **[Download VibeSchedule v1.4.27 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
+- 📦 **[Download VibeSchedule v1.4.28 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
 
 ---
 
