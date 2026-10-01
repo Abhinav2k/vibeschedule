@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.SurfaceGlass
 import com.vibeschedule.app.ui.theme.TextPrimary
+import com.vibeschedule.app.ui.theme.TextSecondary
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.compose.ui.geometry.CornerRadius
