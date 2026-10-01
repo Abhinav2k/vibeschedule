@@ -6,10 +6,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.Icon
+import android.graphics.BitmapFactory
 import android.os.Build
-import android.os.Bundle
-import android.provider.Settings
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
@@ -27,9 +25,6 @@ import java.util.Locale
 object NotificationHelper {
     const val CHANNEL_ID = "vibe_schedule_active_v8"
     const val NOTIFICATION_ID = 8823
-
-    @Volatile
-    private var activeSessionKey: String? = null
 
     /**
      * Helper to show active status notification directly for a ScheduleRule
@@ -76,7 +71,7 @@ object NotificationHelper {
     /**
      * Displays a rich, lock-screen-visible status notification with an active progress bar
      * and interactive [End Now] & [Skip to :00] action buttons visible directly without expanding.
-     * Integrates with Vivo/iQOO Origin Island (Live Capsule) and cross-OEM pill heads-up notifications.
+     * Uses the VibeSchedule app icon for the status bar.
      */
     fun showActiveStatusNotification(
         context: Context,
@@ -137,124 +132,8 @@ object NotificationHelper {
             "Schedule is actively running"
         }
 
-        val iconRes = when (targetMode) {
-            SoundMode.SILENT -> android.R.drawable.ic_lock_silent_mode
-            SoundMode.VIBRATE -> android.R.drawable.ic_lock_silent_mode_off
-            SoundMode.NORMAL -> android.R.drawable.ic_dialog_info
-        }
-
-        val capsuleSummary = when {
-            remainingMinutes != null && remainingMinutes > 0 -> "${targetMode.displayName} ${remainingMinutes}m"
-            else -> targetMode.displayName
-        }
-
-        // Manage Origin Island session lifecycle: 0 = create, 1 = update, 2 = end
-        val sessionKey = "${title}_${targetMode.name}_${endMillis ?: 0L}"
-        val isNewSession = (activeSessionKey == null || activeSessionKey != sessionKey)
-
-        if (activeSessionKey != null && activeSessionKey != sessionKey) {
-            // Cleanly end previous island session if changing rules or starting a different timer
-            try {
-                val endExtras = Bundle().apply {
-                    putInt("notification.superx.operation", 2)
-                    putBoolean("notification.superx.showNotify", false)
-                    putInt("notification.superx.showNotify", 0)
-                    putString("notification.superx.scene", "COUNT_DOWN")
-                }
-                val dismissNotif = NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(iconRes)
-                    .addExtras(endExtras)
-                    .setOngoing(false)
-                    .setLocalOnly(true)
-                    .setSilent(true)
-                    .setTimeoutAfter(1_000L)
-                    .build()
-                notificationManager.notify(NOTIFICATION_ID, dismissNotif)
-            } catch (_: Throwable) { }
-        }
-
-        val operation = if (isNewSession) 0 else 1
-        activeSessionKey = sessionKey
-
-        // OriginOS (vivo / iQOO) Origin Island (原子岛) and cross-OEM dynamic capsule extras
-        val islandExtras = Bundle().apply {
-            // 1. Vivo Origin Island (SuperX / Live Capsule) protocol
-            putInt("notification.superx.operation", operation) // 0=create, 1=update, 2=end
-            putInt("notification.superx.template", 1) // 1 = standard notification card
-            putInt("notification.superx.templateType", 1)
-            putBoolean("notification.superx.showNotify", true)
-            putInt("notification.superx.showNotify", 1)
-            putString("notification.superx.scene", "COUNT_DOWN")
-            putParcelable("notification.superx.clickResp", openAppPI)
-
-            // Base info bundle (Icon, Title, Content) required by Vivo SystemUI plugin
-            val baseInfoBundle = Bundle().apply {
-                try {
-                    putParcelable("notification.superx.baseInfos.icon", Icon.createWithResource(context, iconRes))
-                } catch (_: Throwable) { }
-                putCharSequence("notification.superx.baseInfos.title", title)
-                putCharSequence("notification.superx.baseInfos.content", timeContent)
-                putCharSequence("notification.superx.baseInfos.subText", targetMode.displayName)
-                putCharSequence("notification.superx.baseInfos.capsuleText", capsuleSummary)
-            }
-            putBundle("notification.superx.baseInfos", baseInfoBundle)
-
-            // Direct root keys for OriginOS variants
-            putString("notification.superx.title", title)
-            putString("notification.superx.content", timeContent)
-            putString("notification.superx.subText", targetMode.displayName)
-            putString("notification.superx.capsuleText", capsuleSummary)
-            putString("notification.superx.capsuleTitle", title)
-            putString("notification.superx.capsuleContent", timeContent)
-
-            if (endMillis != null && endMillis > System.currentTimeMillis()) {
-                putLong("notification.superx.endTime", endMillis)
-                putLong("notification.superx.targetTime", endMillis)
-            }
-
-            try {
-                val baseInfosJson = org.json.JSONObject().apply {
-                    put("operation", operation)
-                    put("scene", "COUNT_DOWN")
-                    put("templateType", 1)
-                    put("showNotify", true)
-                    put("title", title)
-                    put("content", timeContent)
-                    put("subText", targetMode.displayName)
-                    put("capsuleText", capsuleSummary)
-                    put("capsuleData", org.json.JSONObject().apply {
-                        put("bgColor", "#1E1E2E")
-                    })
-                    if (remainingMinutes != null && totalMinutes != null && totalMinutes > 0) {
-                        val progress = ((totalMinutes - remainingMinutes).toFloat() / totalMinutes * 100).toInt().coerceIn(0, 100)
-                        put("progress", progress)
-                    }
-                    if (endMillis != null) {
-                        put("endTime", endMillis)
-                    }
-                }
-                putString("notification.superx.baseInfos.json", baseInfosJson.toString())
-                putString("AndroidVivoLiveMessage", baseInfosJson.toString())
-            } catch (_: Throwable) { }
-
-            // Compatibility extras for Xiaomi HyperOS, OPPO/OnePlus ColorOS, and Vivo live capsules
-            putBoolean("miui.capsule", true)
-            putString("miui.capsule.text", capsuleSummary)
-            putBoolean("coloros_capsule", true)
-            putString("coloros_capsule_content", capsuleSummary)
-            putBoolean("vivo.live_capsule.enable", true)
-            putString("vivo.live_capsule.title", title)
-            putString("vivo.live_capsule.content", capsuleSummary)
-            putBoolean("com.vivo.notification.capsule", true)
-            putString("com.vivo.notification.capsule.text", capsuleSummary)
-            putBoolean("android.live_activity", true)
-            if (totalMinutes != null && totalMinutes > 0 && remainingMinutes != null) {
-                val elapsed = (totalMinutes - remainingMinutes).coerceIn(0, totalMinutes)
-                putInt("android.progress", elapsed)
-                putInt("android.progressMax", totalMinutes)
-                putBoolean("android.progressIndeterminate", false)
-            }
-        }
+        // Use the app launcher icon for the notification status bar icon
+        val appIconRes = R.mipmap.ic_launcher
 
         // Custom Compact Layout with big media-style buttons
         val collapsedView = RemoteViews(context.packageName, R.layout.notification_vibe_collapsed).apply {
@@ -284,9 +163,16 @@ object NotificationHelper {
         val hasCountdown = endMillis != null && endMillis > System.currentTimeMillis()
         val notifCategory = if (hasCountdown) NotificationCompat.CATEGORY_PROGRESS else NotificationCompat.CATEGORY_STATUS
 
+        // Large icon bitmap of the app icon
+        val appIconBitmap = try {
+            BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
+        } catch (_: Throwable) {
+            null
+        }
+
         // Lock screen public version (prevents system from masking or stripping content on lock screen & AOD)
         val publicNotification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(iconRes)
+            .setSmallIcon(appIconRes)
             .setContentTitle(title)
             .setContentText(timeContent)
             .setSubText(targetMode.displayName)
@@ -297,11 +183,11 @@ object NotificationHelper {
             .setCategory(notifCategory)
             .setOngoing(true)
             .setSilent(true)
-            .setLocalOnly(true)
-            .setTimeoutAfter(8 * 60 * 60 * 1_000L)
-            .addExtras(islandExtras)
             .setContentIntent(openAppPI)
             .apply {
+                if (appIconBitmap != null) {
+                    setLargeIcon(appIconBitmap)
+                }
                 if (hasCountdown && endMillis != null) {
                     setUsesChronometer(true)
                     setChronometerCountDown(true)
@@ -316,7 +202,7 @@ object NotificationHelper {
             .build()
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(iconRes)
+            .setSmallIcon(appIconRes)
             .setContentTitle(title)
             .setContentText(timeContent)
             .setSubText(targetMode.displayName)
@@ -329,11 +215,11 @@ object NotificationHelper {
             .setOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)
-            .setLocalOnly(true)
-            .setTimeoutAfter(8 * 60 * 60 * 1_000L)
-            .addExtras(islandExtras)
             .setContentIntent(openAppPI)
             .apply {
+                if (appIconBitmap != null) {
+                    setLargeIcon(appIconBitmap)
+                }
                 if (hasCountdown && endMillis != null) {
                     setUsesChronometer(true)
                     setChronometerCountDown(true)
@@ -359,17 +245,19 @@ object NotificationHelper {
             // Bulletproof fallback in case custom RemoteViews encounter any device-specific issue
             try {
                 val fallback = NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(iconRes)
+                    .setSmallIcon(appIconRes)
                     .setContentTitle(title)
                     .setContentText(timeContent)
                     .setSubText(targetMode.displayName)
                     .setOngoing(true)
-                    .setLocalOnly(true)
-                    .setTimeoutAfter(8 * 60 * 60 * 1_000L)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    .addExtras(islandExtras)
                     .setContentIntent(openAppPI)
+                    .apply {
+                        if (appIconBitmap != null) {
+                            setLargeIcon(appIconBitmap)
+                        }
+                    }
                     .build()
                 notificationManager.notify(NOTIFICATION_ID, fallback)
             } catch (fallbackEx: Throwable) {
@@ -383,33 +271,6 @@ object NotificationHelper {
     fun dismissNotification(context: Context) {
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            // Inform OriginOS Origin Island to dismiss its punch-hole capsule immediately
-            if (activeSessionKey != null) {
-                try {
-                    val endExtras = Bundle().apply {
-                        putInt("notification.superx.operation", 2) // 2 = end/dismiss island capsule
-                        putBoolean("notification.superx.showNotify", false)
-                        putInt("notification.superx.showNotify", 0)
-                        putString("notification.superx.scene", "COUNT_DOWN")
-                        val baseInfoBundle = Bundle().apply {
-                            putCharSequence("notification.superx.baseInfos.title", "")
-                            putCharSequence("notification.superx.baseInfos.content", "")
-                        }
-                        putBundle("notification.superx.baseInfos", baseInfoBundle)
-                    }
-                    val dismissNotif = NotificationCompat.Builder(context, CHANNEL_ID)
-                        .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
-                        .addExtras(endExtras)
-                        .setOngoing(false)
-                        .setLocalOnly(true)
-                        .setTimeoutAfter(3_000L)
-                        .setSilent(true)
-                        .build()
-                    notificationManager.notify(NOTIFICATION_ID, dismissNotif)
-                } catch (_: Throwable) { }
-                activeSessionKey = null
-            }
-
             notificationManager.cancel(NOTIFICATION_ID)
         } catch (e: Throwable) {
             e.printStackTrace()
@@ -429,7 +290,6 @@ object NotificationHelper {
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_v7")
             } catch (e: Exception) { }
 
-            // OriginOS / Live Capsule requires IMPORTANCE_HIGH to display as punch-hole pill
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 context.getString(R.string.channel_name),
@@ -442,12 +302,6 @@ object NotificationHelper {
                 setShowBadge(true)
             }
             notificationManager.createNotificationChannel(channel)
-
-            // Attempt to configure Vivo SuperX setting in system secure table if permission allows
-            try {
-                val pkgKey = "superx_notification_${context.packageName.replace('.', '_')}"
-                Settings.Secure.putString(context.contentResolver, pkgKey, "1")
-            } catch (_: Throwable) { }
         }
     }
 }
