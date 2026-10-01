@@ -6,7 +6,7 @@
 [![Android CI](https://img.shields.io/badge/Android-SDK%2026--34-green?logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-purple?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20M3-blue?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Release Version](https://img.shields.io/badge/version-v1.4.25-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
+[![Release Version](https://img.shields.io/badge/version-v1.4.26-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
 ---
@@ -23,7 +23,7 @@ The app schedules exact system transitions between **Normal**, **Vibrate**, and 
 
 Get the latest signed APK directly from GitHub Releases:
 
-- 📦 **[Download VibeSchedule v1.4.25 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
+- 📦 **[Download VibeSchedule v1.4.26 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
 
 ---
 
@@ -57,7 +57,8 @@ Get the latest signed APK directly from GitHub Releases:
 - Registered `BootReceiver` automatically recalculates and reschedules all active alarms upon device restart.
 
 ### 💎 Floating Liquid Glass Navigation Bar
-- Modern translucent liquid glass capsule floating directly over scrolling content with specular rim lighting, internal light sheen, soft ambient elevation, and tactile frosted active tab pills.
+- G2 continuous-curvature squircle dock capsule rendered with LastWave-Native liquid glass optics, specular rim lighting, top lens sheen, soft ambient elevation, and interactive radial touch glow.
+- **Sliding Liquid Pill Indicator**: Seamless spatial spring animation that physically glides the white frosted active indicator across the track to the selected tab with haptic feedback.
 - Fully edge-to-edge transparent system navigation bar without opaque bars or docked slots.
 
 ---

@@ -1,16 +1,20 @@
 package com.vibeschedule.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,10 +22,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
@@ -33,26 +40,245 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.SurfaceGlass
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
+/**
+ * Continuous-curvature squircle (G2 superellipse) implementing [CornerBasedShape].
+ * Sourced directly from LastWave-Native for authentic liquid glass curvature.
+ */
+class SquircleShape(
+    topStart: CornerSize,
+    topEnd: CornerSize,
+    bottomEnd: CornerSize,
+    bottomStart: CornerSize,
+) : CornerBasedShape(topStart, topEnd, bottomEnd, bottomStart) {
+
+    constructor(radius: Dp) : this(
+        CornerSize(radius),
+        CornerSize(radius),
+        CornerSize(radius),
+        CornerSize(radius),
+    )
+
+    constructor(percent: Int = 50) : this(
+        CornerSize(percent),
+        CornerSize(percent),
+        CornerSize(percent),
+        CornerSize(percent),
+    )
+
+    override fun copy(
+        topStart: CornerSize,
+        topEnd: CornerSize,
+        bottomEnd: CornerSize,
+        bottomStart: CornerSize,
+    ): CornerBasedShape = SquircleShape(topStart, topEnd, bottomEnd, bottomStart)
+
+    override fun createOutline(
+        size: Size,
+        topStart: Float,
+        topEnd: Float,
+        bottomEnd: Float,
+        bottomStart: Float,
+        layoutDirection: LayoutDirection,
+    ): Outline {
+        val w = size.width
+        val h = size.height
+        if (w <= 0f || h <= 0f) return Outline.Rectangle(Rect.Zero)
+
+        val isLtr = layoutDirection == LayoutDirection.Ltr
+        val tl = if (isLtr) topStart else topEnd
+        val tr = if (isLtr) topEnd else topStart
+        val br = if (isLtr) bottomEnd else bottomStart
+        val bl = if (isLtr) bottomStart else bottomEnd
+
+        if (tl <= 0f && tr <= 0f && br <= 0f && bl <= 0f) {
+            return Outline.Rectangle(Rect(0f, 0f, w, h))
+        }
+
+        val path = createSquirclePath(w, h, tl, tr, br, bl)
+        return Outline.Generic(path)
+    }
+}
+
+fun createSquirclePath(
+    w: Float,
+    h: Float,
+    tlRadius: Float,
+    trRadius: Float,
+    brRadius: Float,
+    blRadius: Float,
+): Path {
+    val path = Path()
+    val maxRadius = minOf(w, h) / 2f
+    val tl = tlRadius.coerceIn(0f, maxRadius)
+    val tr = trRadius.coerceIn(0f, maxRadius)
+    val br = brRadius.coerceIn(0f, maxRadius)
+    val bl = blRadius.coerceIn(0f, maxRadius)
+
+    val k = 1.528665f
+    var lTl = tl * k
+    var lTr = tr * k
+    var lBr = br * k
+    var lBl = bl * k
+
+    val maxWTop = lTl + lTr
+    if (maxWTop > w && maxWTop > 0f) {
+        val scale = w / maxWTop
+        lTl *= scale
+        lTr *= scale
+    }
+    val maxWBottom = lBl + lBr
+    if (maxWBottom > w && maxWBottom > 0f) {
+        val scale = w / maxWBottom
+        lBl *= scale
+        lBr *= scale
+    }
+    val maxHLeft = lTl + lBl
+    if (maxHLeft > h && maxHLeft > 0f) {
+        val scale = h / maxHLeft
+        lTl *= scale
+        lBl *= scale
+    }
+    val maxHRight = lTr + lBr
+    if (maxHRight > h && maxHRight > 0f) {
+        val scale = h / maxHRight
+        lTr *= scale
+        lBr *= scale
+    }
+
+    path.moveTo(lTl, 0f)
+    path.lineTo(w - lTr, 0f)
+    if (lTr > 0.001f) {
+        path.cubicTo(
+            w - lTr * (1f - 0.712053f), 0f,
+            w - lTr * (1f - 0.566789f), lTr * 0.030183f,
+            w - lTr * (1f - 0.455953f), lTr * 0.087377f,
+        )
+        path.cubicTo(
+            w - lTr * (1f - 0.345118f), lTr * 0.144571f,
+            w - lTr * (1f - 0.242846f), lTr * 0.242846f,
+            w - lTr * (1f - 0.144571f), lTr * 0.345118f,
+        )
+        path.cubicTo(
+            w - lTr * (1f - 0.087377f), lTr * 0.455953f,
+            w - lTr * 0.030183f, lTr * (1f - 0.566789f),
+            w, lTr * (1f - 0.712053f),
+        )
+        path.lineTo(w, lTr)
+    } else {
+        path.lineTo(w, 0f)
+        path.lineTo(w, lTr)
+    }
+    path.lineTo(w, h - lBr)
+    if (lBr > 0.001f) {
+        path.cubicTo(
+            w, h - lBr * (1f - 0.712053f),
+            w - lBr * 0.030183f, h - lBr * (1f - 0.566789f),
+            w - lBr * 0.087377f, h - lBr * (1f - 0.455953f),
+        )
+        path.cubicTo(
+            w - lBr * 0.144571f, h - lBr * (1f - 0.345118f),
+            w - lBr * 0.242846f, h - lBr * (1f - 0.242846f),
+            w - lBr * 0.345118f, h - lBr * (1f - 0.144571f),
+        )
+        path.cubicTo(
+            w - lBr * 0.455953f, h - lBr * (1f - 0.087377f),
+            w - lBr * (1f - 0.566789f), h - lBr * 0.030183f,
+            w - lBr * (1f - 0.712053f), h,
+        )
+        path.lineTo(w - lBr, h)
+    } else {
+        path.lineTo(w, h)
+        path.lineTo(w - lBr, h)
+    }
+    path.lineTo(lBl, h)
+    if (lBl > 0.001f) {
+        path.cubicTo(
+            lBl * (1f - 0.712053f), h,
+            lBl * (1f - 0.566789f), h - lBl * 0.030183f,
+            lBl * (1f - 0.455953f), h - lBl * 0.087377f,
+        )
+        path.cubicTo(
+            lBl * (1f - 0.345118f), h - lBl * 0.144571f,
+            lBl * (1f - 0.242846f), h - lBl * 0.242846f,
+            lBl * (1f - 0.144571f), h - lBl * 0.345118f,
+        )
+        path.cubicTo(
+            lBl * (1f - 0.087377f), h - lBl * 0.455953f,
+            lBl * 0.030183f, h - lBl * (1f - 0.566789f),
+            0f, h - lBl * (1f - 0.712053f),
+        )
+        path.lineTo(0f, h - lBl)
+    } else {
+        path.lineTo(0f, h)
+        path.lineTo(0f, h - lBl)
+    }
+    path.lineTo(0f, lTl)
+    if (lTl > 0.001f) {
+        path.cubicTo(
+            0f, lTl * (1f - 0.712053f),
+            lTl * 0.030183f, lTl * (1f - 0.566789f),
+            lTl * 0.087377f, lTl * (1f - 0.455953f),
+        )
+        path.cubicTo(
+            lTl * 0.144571f, lTl * (1f - 0.345118f),
+            lTl * 0.242846f, lTl * (1f - 0.242846f),
+            lTl * 0.345118f, lTl * (1f - 0.144571f),
+        )
+        path.cubicTo(
+            lTl * 0.455953f, lTl * (1f - 0.087377f),
+            lTl * (1f - 0.566789f), lTl * 0.030183f,
+            lTl * (1f - 0.712053f), 0f,
+        )
+        path.lineTo(lTl, 0f)
+    } else {
+        path.lineTo(0f, 0f)
+        path.lineTo(lTl, 0f)
+    }
+    path.close()
+    return path
+}
 
 @Composable
 fun GlassCard(
@@ -150,6 +376,13 @@ fun GlowingIndicator(isActive: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
+data class TabBounds(
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float
+)
+
 data class NavTabItem(
     val title: String,
     val selectedIcon: ImageVector,
@@ -158,7 +391,8 @@ data class NavTabItem(
 
 /**
  * Floating Liquid Glass Navigation Bar inspired by LastWave Native's liquid glass player card.
- * Features a floating rounded capsule, specular top rim light, and fluid glowing active indicator.
+ * Features a continuous-curvature squircle dock capsule, specular top rim light, interactive radial touch glow,
+ * and a single white liquid glass indicator pill that smoothly slides with spatial spring physics across tabs.
  */
 @Composable
 fun FloatingLiquidGlassBottomBar(
@@ -167,32 +401,77 @@ fun FloatingLiquidGlassBottomBar(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    val items = listOf(
-        NavTabItem("Home", Icons.Rounded.Home, Icons.Outlined.Home),
-        NavTabItem("Schedules", Icons.Rounded.Schedule, Icons.Outlined.Schedule),
-        NavTabItem("Settings", Icons.Rounded.Settings, Icons.Outlined.Settings)
-    )
+    val density = LocalDensity.current
 
-    val capsuleShape = CircleShape
+    val items = remember {
+        listOf(
+            NavTabItem("Home", Icons.Rounded.Home, Icons.Outlined.Home),
+            NavTabItem("Schedules", Icons.Rounded.Schedule, Icons.Outlined.Schedule),
+            NavTabItem("Settings", Icons.Rounded.Settings, Icons.Outlined.Settings)
+        )
+    }
+
+    // Continuous-curvature squircle dock capsule shape directly from LastWave-Native
+    val capsuleShape = remember { SquircleShape(radius = 32.dp) }
+    val pillShape = remember { CircleShape }
+
+    // Track layout bounds of each tab
+    val tabBounds = remember { mutableStateMapOf<Int, TabBounds>() }
+
+    // Spatial spring physics from LastWave ExpressiveMotion
+    val navSpring = remember {
+        spring<Float>(
+            dampingRatio = 0.76f,
+            stiffness = 380f
+        )
+    }
+
+    // Animatable properties for the sliding white indicator pill
+    val indicatorOffsetX = remember { Animatable(0f) }
+    val indicatorOffsetY = remember { Animatable(0f) }
+    val indicatorWidth = remember { Animatable(0f) }
+    val indicatorHeight = remember { Animatable(0f) }
+    var isInitialized by remember { mutableStateOf(false) }
+
+    // Interactive touch coordinates for LastWave radial glow effect
+    var touchPosition by remember { mutableStateOf<Offset?>(null) }
+    var isTouching by remember { mutableStateOf(false) }
+
+    // Smoothly slide the indicator pill when selectedTab changes or layout measures
+    LaunchedEffect(selectedTab, tabBounds[selectedTab]) {
+        val bounds = tabBounds[selectedTab] ?: return@LaunchedEffect
+        if (!isInitialized) {
+            indicatorOffsetX.snapTo(bounds.x)
+            indicatorOffsetY.snapTo(bounds.y)
+            indicatorWidth.snapTo(bounds.width)
+            indicatorHeight.snapTo(bounds.height)
+            isInitialized = true
+        } else {
+            launch { indicatorOffsetX.animateTo(bounds.x, navSpring) }
+            launch { indicatorOffsetY.animateTo(bounds.y, navSpring) }
+            launch { indicatorWidth.animateTo(bounds.width, navSpring) }
+            launch { indicatorHeight.animateTo(bounds.height, navSpring) }
+        }
+    }
 
     Box(
         modifier = modifier
             // Multi-layered soft ambient drop shadow for authentic floating elevation
             .shadow(
-                elevation = 16.dp,
+                elevation = 18.dp,
                 shape = capsuleShape,
                 clip = false,
-                ambientColor = Color(0x66000000),
+                ambientColor = Color(0x60000000),
                 spotColor = Color(0x88000000)
             )
-            // Clip to capsule shape
+            // Clip to continuous curvature squircle
             .clip(capsuleShape)
-            // Translucent glass gradient body (30-45% opacity, letting background scroll beneath)
+            // Translucent glass gradient body (LastWave-native recipe)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0x70222738), // Translucent frosted slate-indigo top
-                        Color(0x48131624), // Highly transparent middle for glass refraction
+                        Color(0x75202436), // Translucent frosted slate-indigo top
+                        Color(0x48121524), // Highly transparent middle for glass refraction
                         Color(0x60181B2B)  // Translucent bottom
                     )
                 )
@@ -212,8 +491,26 @@ fun FloatingLiquidGlassBottomBar(
                 ),
                 capsuleShape
             )
+            // LastWave interactive drag/touch inspector for fluid radial light glow
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    touchPosition = down.position
+                    isTouching = true
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val change = event.changes.firstOrNull { it.id == down.id }
+                        if (change == null || !change.pressed) {
+                            isTouching = false
+                            touchPosition = null
+                            break
+                        }
+                        touchPosition = change.position
+                    }
+                }
+            }
     ) {
-        // Internal specular glass sheen (top curvature light reflection)
+        // Internal specular glass sheen (top curvature light reflection from LastWave)
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -227,74 +524,125 @@ fun FloatingLiquidGlassBottomBar(
                 )
         )
 
-        // Tab items row
-        Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items.forEachIndexed { index, item ->
-                val isSelected = selectedTab == index
-                val animatedContentColor by animateColorAsState(
-                    targetValue = if (isSelected) Color(0xFF0F111A) else Color(0xCCFFFFFF),
-                    animationSpec = tween(durationMillis = 180),
-                    label = "tabContent"
-                )
+        // LastWave interactive radial liquid glass glow on touch
+        if (isTouching && touchPosition != null) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(capsuleShape)
+                    .drawBehind {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.15f),
+                                    Color.Transparent
+                                ),
+                                center = touchPosition!!,
+                                radius = size.minDimension * 1.5f
+                            ),
+                            blendMode = BlendMode.Plus
+                        )
+                    }
+            )
+        }
 
+        // Inner track containing the sliding white pill indicator and tab items
+        Box(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp)
+        ) {
+            // The single white liquid glass indicator pill that slides horizontally to the active tab
+            if (isInitialized && indicatorWidth.value > 0f) {
                 Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .then(
-                            if (isSelected) {
-                                Modifier
-                                    .shadow(elevation = 4.dp, shape = CircleShape, spotColor = Color(0x40000000))
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color(0xFFFFFFFF),
-                                                Color(0xFFE2E7F0)
-                                            )
-                                        )
-                                    )
-                                    .border(BorderStroke(0.75.dp, Color(0x80FFFFFF)), CircleShape)
-                            } else {
-                                Modifier.background(Color.Transparent)
-                            }
+                        .offset {
+                            IntOffset(
+                                x = indicatorOffsetX.value.roundToInt(),
+                                y = indicatorOffsetY.value.roundToInt()
+                            )
+                        }
+                        .size(
+                            width = with(density) { indicatorWidth.value.toDp() },
+                            height = with(density) { indicatorHeight.value.toDp() }
                         )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {
-                                if (!isSelected) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        .shadow(
+                            elevation = 6.dp,
+                            shape = pillShape,
+                            spotColor = Color(0x40000000)
+                        )
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFE2E7F0)
+                                )
+                            ),
+                            pillShape
+                        )
+                        .border(
+                            BorderStroke(0.8.dp, Color(0xB0FFFFFF)),
+                            pillShape
+                        )
+                )
+            }
+
+            // Tab items row positioned on top of the sliding indicator
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items.forEachIndexed { index, item ->
+                    val isSelected = selectedTab == index
+                    val animatedContentColor by animateColorAsState(
+                        targetValue = if (isSelected) Color(0xFF0F111A) else Color(0xCCFFFFFF),
+                        animationSpec = tween(durationMillis = 200),
+                        label = "tabContentColor"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .onGloballyPositioned { coordinates ->
+                                val pos = coordinates.positionInParent()
+                                val size = coordinates.size
+                                tabBounds[index] = TabBounds(
+                                    x = pos.x,
+                                    y = pos.y,
+                                    width = size.width.toFloat(),
+                                    height = size.height.toFloat()
+                                )
+                            }
+                            .clip(pillShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {
+                                    if (selectedTab != index) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onTabSelected(index)
+                                    }
                                 }
-                                onTabSelected(index)
-                            }
-                        )
-                        .padding(
-                            horizontal = if (isSelected) 16.dp else 13.dp,
-                            vertical = 9.dp
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                            )
+                            .padding(horizontal = 16.dp, vertical = 9.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                            contentDescription = item.title,
-                            tint = animatedContentColor,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = item.title,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = animatedContentColor,
-                            letterSpacing = (-0.2).sp
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = item.title,
+                                tint = animatedContentColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = item.title,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = animatedContentColor,
+                                letterSpacing = (-0.2).sp
+                            )
+                        }
                     }
                 }
             }
