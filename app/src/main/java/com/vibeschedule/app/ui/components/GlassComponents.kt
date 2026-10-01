@@ -79,10 +79,15 @@ import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.SurfaceGlass
 import com.vibeschedule.app.ui.theme.TextPrimary
-import com.vibeschedule.app.ui.theme.TextSecondary
+import android.graphics.RuntimeShader
+import android.os.Build
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sign
+import kotlin.math.sin
 
 @Composable
 fun GlassCard(
@@ -193,6 +198,157 @@ data class NavTabItem(
     val unselectedIcon: ImageVector
 )
 
+private const val LIQUID_GLASS_PILL_SHADER = """
+    uniform float2 uResolution;
+    uniform float uMotion;
+    uniform float uMotionDir;
+    uniform float2 uTouchPos;
+    uniform float uTouchActive;
+
+    float sdCapsule(float2 p, float2 halfSize, float r) {
+        float2 d = abs(p) - (halfSize - float2(r));
+        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - r;
+    }
+
+    float2 gradCapsule(float2 p, float2 halfSize, float r) {
+        float2 d = abs(p) - (halfSize - float2(r));
+        if (d.x > 0.0 || d.y > 0.0) {
+            return sign(p) * normalize(max(d, 0.0));
+        }
+        float gx = step(d.y, d.x);
+        return sign(p) * float2(gx, 1.0 - gx);
+    }
+
+    half4 main(float2 fragCoord) {
+        if (uResolution.x <= 0.0 || uResolution.y <= 0.0) {
+            return half4(0.28, 0.28, 0.28, 0.28);
+        }
+
+        float2 halfSize = uResolution * 0.5;
+        float2 p = fragCoord - halfSize;
+        float radius = min(halfSize.x, halfSize.y);
+
+        float dist = sdCapsule(p, halfSize, radius);
+        if (dist > 0.5) {
+            return half4(0.0, 0.0, 0.0, 0.0);
+        }
+
+        float innerDist = -dist;
+
+        // 1. Convex liquid meniscus curvature
+        float rimHeight = 12.0 + uMotion * 5.0;
+        float dNorm = clamp(innerDist / rimHeight, 0.0, 1.0);
+        float z = sqrt(1.0 - (1.0 - dNorm) * (1.0 - dNorm));
+
+        // 2. Normal gradient for optical refraction
+        float2 normGrad = gradCapsule(p, halfSize, radius);
+        float2 normal2D = normalize(normGrad * (1.0 - z * 0.5) + (p / halfSize) * 0.5);
+
+        // 3. Fresnel edge brilliance (Total Internal Reflection at meniscus)
+        float fresnel = pow(1.0 - z, 2.2);
+        float rimSpecular = smoothstep(0.0, 2.0, innerDist) * fresnel * 0.65;
+
+        // 4. Directional caustic lighting (top-angled key light)
+        float2 lightDir = normalize(float2(-0.25 - uMotionDir * 0.2, -0.95));
+        float lightDot = max(0.0, dot(normal2D, -lightDir));
+        float specularGlint = pow(lightDot, 14.0) * (0.60 + 0.30 * (1.0 - dNorm));
+
+        // 5. Internal secondary bounce caustic (bottom rim reflection)
+        float bottomBounce = max(0.0, dot(normal2D, float2(0.0, 1.0))) * pow(1.0 - dNorm, 2.2) * 0.32;
+
+        // 6. Fluid motion distortion (caustic light slosh during movement)
+        float slosh = uMotion * (0.15 + 0.10 * sin(fragCoord.x * 0.05));
+
+        // 7. Base frosted glass translucency
+        float vertFade = fragCoord.y / uResolution.y;
+        float baseAlpha = mix(0.38, 0.18, vertFade) + slosh;
+
+        // 8. Subtle optical dispersion (microscopic chromatic refraction at the edge)
+        float dispersion = pow(1.0 - dNorm, 2.0) * (0.08 + uMotion * 0.05);
+        float rC = 1.0 + dispersion * 0.4;
+        float gC = 1.0;
+        float bC = 1.0 + dispersion * 1.1;
+
+        float alpha = clamp(baseAlpha + rimSpecular + specularGlint + bottomBounce, 0.0, 0.95);
+        float edgeAa = smoothstep(0.5, -0.5, dist);
+        float finalA = alpha * edgeAa;
+
+        return half4(rC * finalA, gC * finalA, bC * finalA, finalA);
+    }
+"""
+
+private const val LIQUID_GLASS_DOCK_SHADER = """
+    uniform float2 uResolution;
+    uniform float uTouchActive;
+    uniform float2 uTouchPos;
+
+    float sdCapsule(float2 p, float2 halfSize, float r) {
+        float2 d = abs(p) - (halfSize - float2(r));
+        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - r;
+    }
+
+    float2 gradCapsule(float2 p, float2 halfSize, float r) {
+        float2 d = abs(p) - (halfSize - float2(r));
+        if (d.x > 0.0 || d.y > 0.0) {
+            return sign(p) * normalize(max(d, 0.0));
+        }
+        float gx = step(d.y, d.x);
+        return sign(p) * float2(gx, 1.0 - gx);
+    }
+
+    half4 main(float2 fragCoord) {
+        if (uResolution.x <= 0.0 || uResolution.y <= 0.0) {
+            return half4(0.06, 0.07, 0.10, 0.55);
+        }
+
+        float2 halfSize = uResolution * 0.5;
+        float2 p = fragCoord - halfSize;
+        float radius = min(halfSize.x, halfSize.y);
+
+        float dist = sdCapsule(p, halfSize, radius);
+        if (dist > 0.5) return half4(0.0, 0.0, 0.0, 0.0);
+
+        float innerDist = -dist;
+        float dNorm = clamp(innerDist / 20.0, 0.0, 1.0);
+        float z = sqrt(1.0 - (1.0 - dNorm) * (1.0 - dNorm));
+
+        // Edge normal & rim lighting
+        float2 normGrad = gradCapsule(p, halfSize, radius);
+        float2 normal2D = normalize(normGrad * (1.0 - z * 0.4) + (p / halfSize) * 0.4);
+
+        // Fresnel rim reflection
+        float fresnel = pow(1.0 - z, 2.5);
+        float rim = smoothstep(0.0, 3.0, innerDist) * fresnel * 0.45;
+
+        // Key light specular from top
+        float2 lightDir = normalize(float2(-0.2, -0.98));
+        float spec = pow(max(0.0, dot(normal2D, -lightDir)), 16.0) * 0.40;
+
+        // Bottom bounce
+        float bottom = max(0.0, dot(normal2D, float2(0.0, 1.0))) * pow(1.0 - dNorm, 2.0) * 0.22;
+
+        // Touch interaction glow
+        float touchGlow = 0.0;
+        if (uTouchActive > 0.01) {
+            float tDist = length(fragCoord - uTouchPos);
+            touchGlow = exp(-tDist * tDist / 4500.0) * uTouchActive * 0.35;
+        }
+
+        // Translucent dark obsidian glass base
+        float vert = fragCoord.y / uResolution.y;
+        float baseAlpha = mix(0.55, 0.40, vert);
+
+        float rCol = mix(0.11, 0.07, vert) + rim * 0.6 + spec + touchGlow;
+        float gCol = mix(0.13, 0.08, vert) + rim * 0.6 + spec + touchGlow;
+        float bCol = mix(0.19, 0.13, vert) + rim * 0.75 + spec + touchGlow;
+        float totalAlpha = clamp(baseAlpha + rim + spec * 0.5 + bottom + touchGlow, 0.0, 0.88);
+        float edgeAa = smoothstep(0.5, -0.5, dist);
+        float finalA = totalAlpha * edgeAa;
+
+        return half4(rCol * finalA, gCol * finalA, bCol * finalA, finalA);
+    }
+"""
+
 /**
  * Floating Liquid Glass Navigation Bar inspired by LastWave Native's liquid glass player card.
  * Features a continuous-curvature squircle dock capsule, specular top rim light, interactive radial touch glow,
@@ -213,6 +369,19 @@ fun FloatingLiquidGlassBottomBar(
             NavTabItem("Schedules", Icons.Rounded.Schedule, Icons.Outlined.Schedule),
             NavTabItem("Settings", Icons.Rounded.Settings, Icons.Outlined.Settings)
         )
+    }
+
+    // GPU-accelerated AGSL runtime shaders for optical liquid glass refraction & distortion (Android 13+)
+    val pillShader = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            runCatching { RuntimeShader(LIQUID_GLASS_PILL_SHADER) }.getOrNull()
+        } else null
+    }
+
+    val dockShader = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            runCatching { RuntimeShader(LIQUID_GLASS_DOCK_SHADER) }.getOrNull()
+        } else null
     }
 
     // Textbook pill (capsule / stadium) shape for both the floating dock and the sliding indicator
@@ -266,11 +435,13 @@ fun FloatingLiquidGlassBottomBar(
         label = "pillH"
     )
 
-    // Dynamic hydrodynamic liquid deformation (squash & stretch during tab transition)
+    // Dynamic hydrodynamic liquid deformation (squash & stretch & slosh during tab transition)
     val deltaX = targetX - animX
-    val motionFactor = if (hasInitialized) (abs(deltaX) / 75f).coerceIn(0f, 1f) else 0f
-    val stretchX = motionFactor * 0.22f
-    val squashY = motionFactor * 0.08f
+    val motionFactor = if (hasInitialized) (abs(deltaX) / 75f).coerceIn(0f, 1.2f) else 0f
+    val motionDir = if (hasInitialized && abs(deltaX) > 0.5f) sign(deltaX) else 0f
+    val stretchX = motionFactor * 0.28f
+    val squashY = motionFactor * 0.12f
+    val fluidLagX = -motionDir * motionFactor * 4.0f
 
     // Interactive touch coordinates for LastWave radial glow effect
     var touchPosition by remember { mutableStateOf<Offset?>(null) }
@@ -288,16 +459,31 @@ fun FloatingLiquidGlassBottomBar(
             )
             // Clip to clean pill capsule shape
             .clip(dockPillShape)
-            // Translucent glass gradient body (LastWave-native recipe)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0x8C1C2030), // Translucent frosted slate-indigo top
-                        Color(0x65111422), // Highly transparent middle for glass refraction
-                        Color(0x80171A2A)  // Translucent bottom
+            // Translucent glass body with AGSL SDF optical refraction on API 33+ or multi-stop gradient fallback
+            .drawBehind {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && dockShader != null && size.width > 0f && size.height > 0f) {
+                    dockShader.setFloatUniform("uResolution", size.width, size.height)
+                    dockShader.setFloatUniform("uTouchActive", if (isTouching) 1f else 0f)
+                    dockShader.setFloatUniform("uTouchPos", touchPosition?.x ?: (size.width / 2f), touchPosition?.y ?: (size.height / 2f))
+                    drawRoundRect(
+                        brush = ShaderBrush(dockShader),
+                        size = size,
+                        cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
                     )
-                )
-            )
+                } else {
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x8C1C2030), // Translucent frosted slate-indigo top
+                                Color(0x65111422), // Highly transparent middle for glass refraction
+                                Color(0x80171A2A)  // Translucent bottom
+                            )
+                        ),
+                        size = size,
+                        cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
+                    )
+                }
+            }
             // Specular rim stroke with authentic glass reflections
             .border(
                 BorderStroke(
@@ -393,27 +579,45 @@ fun FloatingLiquidGlassBottomBar(
                             ambientColor = Color(0x25000000),
                             spotColor = Color(0x40000000)
                         )
-                        // Hydrodynamic squash & stretch during tab transition
+                        // Hydrodynamic squash & stretch and inertial fluid slosh during tab transition
                         .graphicsLayer {
                             scaleX = 1f + stretchX
                             scaleY = 1f - squashY
+                            translationX = fluidLagX
                         }
                         .clip(pillShape)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0x44FFFFFF), // Luminous frosted white top
-                                    Color(0x20FFFFFF)  // Luminous translucent white bottom
+                        .drawBehind {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && pillShader != null && size.width > 0f && size.height > 0f) {
+                                pillShader.setFloatUniform("uResolution", size.width, size.height)
+                                pillShader.setFloatUniform("uMotion", motionFactor)
+                                pillShader.setFloatUniform("uMotionDir", (deltaX / 75f).coerceIn(-1f, 1f))
+                                pillShader.setFloatUniform("uTouchPos", touchPosition?.x ?: 0f, touchPosition?.y ?: 0f)
+                                pillShader.setFloatUniform("uTouchActive", if (isTouching) 1f else 0f)
+                                drawRoundRect(
+                                    brush = ShaderBrush(pillShader),
+                                    size = size,
+                                    cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
                                 )
-                            )
-                        )
+                            } else {
+                                drawRoundRect(
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color(0x44FFFFFF), // Luminous frosted white top
+                                            Color(0x20FFFFFF)  // Luminous translucent white bottom
+                                        )
+                                    ),
+                                    size = size,
+                                    cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
+                                )
+                            }
+                        }
                         .border(
                             BorderStroke(
-                                1.dp,
+                                1.2.dp,
                                 Brush.verticalGradient(
                                     listOf(
-                                        Color(0xD0FFFFFF), // Brilliant specular top rim
-                                        Color(0x45FFFFFF)  // Soft lower rim
+                                        Color(0xE0FFFFFF), // Brilliant specular meniscus rim
+                                        Color(0x50FFFFFF)  // Soft lower rim
                                     )
                                 )
                             ),
@@ -432,7 +636,7 @@ fun FloatingLiquidGlassBottomBar(
                                         Color(0x15FFFFFF), // Soft translucent mid
                                         Color.Transparent
                                     ),
-                                    center = Offset(animW * 0.5f, animH * 0.25f),
+                                    center = Offset(animW * 0.5f + fluidLagX * 1.5f, animH * 0.25f),
                                     radius = maxOf(animW, animH)
                                 )
                             )
@@ -451,6 +655,11 @@ fun FloatingLiquidGlassBottomBar(
                         targetValue = if (isSelected) Color(0xFFFFFFFF) else Color(0x80FFFFFF),
                         animationSpec = tween(durationMillis = 180),
                         label = "tabContentColor"
+                    )
+                    val contentScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.08f else 1.0f,
+                        animationSpec = navSpring,
+                        label = "tabContentScale"
                     )
 
                     Box(
@@ -483,10 +692,8 @@ fun FloatingLiquidGlassBottomBar(
                                 vertical = 9.dp
                             )
                             .graphicsLayer {
-                                if (isSelected) {
-                                    scaleX = 1.04f
-                                    scaleY = 1.04f
-                                }
+                                scaleX = contentScale
+                                scaleY = contentScale
                             },
                         contentAlignment = Alignment.Center
                     ) {
