@@ -80,7 +80,13 @@ import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.SurfaceGlass
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
+import android.graphics.RenderEffect
+import android.graphics.RuntimeShader
+import android.os.Build
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -192,6 +198,33 @@ data class NavTabItem(
     val unselectedIcon: ImageVector
 )
 
+private const val LIQUID_GLASS_LENS_SHADER = """
+    uniform shader contents;
+    uniform float2 uResolution;
+    uniform float uDistortion;
+
+    half4 main(float2 fragCoord) {
+        if (uResolution.x <= 0.0 || uResolution.y <= 0.0) {
+            return contents.eval(fragCoord);
+        }
+        float2 uv = fragCoord / uResolution;
+        float2 centered = uv - float2(0.5, 0.5);
+        float aspect = uResolution.x / uResolution.y;
+        float2 normCentered = float2(centered.x * aspect, centered.y);
+        float r2 = dot(normCentered, normCentered);
+        
+        // Lens optical refraction distortion:
+        // uDistortion < 0 produces physical convex liquid magnification and radial edge curvature
+        float factor = 1.0 + uDistortion * r2;
+        float2 distortedNorm = normCentered * factor;
+        float2 distortedCentered = float2(distortedNorm.x / aspect, distortedNorm.y);
+        float2 distortedUv = distortedCentered + float2(0.5, 0.5);
+        
+        distortedUv = clamp(distortedUv, float2(0.002, 0.002), float2(0.998, 0.998));
+        return contents.eval(distortedUv * uResolution);
+    }
+"""
+
 /**
  * Floating Liquid Glass Navigation Bar inspired by LastWave Native's liquid glass player card.
  * Features a continuous-curvature squircle dock capsule, specular top rim light, interactive radial touch glow,
@@ -212,6 +245,19 @@ fun FloatingLiquidGlassBottomBar(
             NavTabItem("Schedules", Icons.Rounded.Schedule, Icons.Outlined.Schedule),
             NavTabItem("Settings", Icons.Rounded.Settings, Icons.Outlined.Settings)
         )
+    }
+
+    // GPU-accelerated AGSL runtime shaders for optical liquid glass distortion (Android 13+ / 16)
+    val pillLensShader = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            runCatching { RuntimeShader(LIQUID_GLASS_LENS_SHADER) }.getOrNull()
+        } else null
+    }
+
+    val tabLensShader = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            runCatching { RuntimeShader(LIQUID_GLASS_LENS_SHADER) }.getOrNull()
+        } else null
     }
 
     // Textbook pill (capsule / stadium) shape for both the floating dock and the sliding indicator
@@ -265,6 +311,12 @@ fun FloatingLiquidGlassBottomBar(
         label = "pillH"
     )
 
+    // Dynamic hydrodynamic liquid deformation (squash & stretch during tab transition)
+    val deltaX = targetX - animX
+    val motionFactor = if (hasInitialized) (abs(deltaX) / 75f).coerceIn(0f, 1f) else 0f
+    val stretchX = motionFactor * 0.22f
+    val squashY = motionFactor * 0.08f
+
     // Interactive touch coordinates for LastWave radial glow effect
     var touchPosition by remember { mutableStateOf<Offset?>(null) }
     var isTouching by remember { mutableStateOf(false) }
@@ -291,20 +343,16 @@ fun FloatingLiquidGlassBottomBar(
                     )
                 )
             )
-            // Specular rim stroke with prismatic diffraction (chromatic aberration)
+            // Specular rim stroke with authentic glass reflections
             .border(
                 BorderStroke(
                     1.2.dp,
-                    Brush.linearGradient(
+                    Brush.verticalGradient(
                         colors = listOf(
                             Color(0x99FFFFFF), // Crisp specular white reflection at top
-                            Color(0x8064D2FF), // Prismatic Cyan diffraction edge
-                            Color(0x65B388FF), // Prismatic Violet diffraction
-                            Color(0x70FF80AB), // Prismatic Magenta/Rose diffraction
-                            Color(0x50FFD54F), // Warm amber diffraction
-                            Color(0x20FFFFFF), // Subtle translucent mid
-                            Color(0x4564D2FF), // Cyan ambient reflection at bottom
-                            Color(0x35FFFFFF)  // Bottom bounce highlight
+                            Color(0x35FFFFFF), // Translucent side reflection
+                            Color(0x18FFFFFF), // Deep lower refraction
+                            Color(0x40FFFFFF)  // Bottom bounce highlight
                         )
                     )
                 ),
@@ -329,7 +377,7 @@ fun FloatingLiquidGlassBottomBar(
                 }
             }
     ) {
-        // Internal specular glass sheen with subtle chromatic dispersion
+        // Internal specular glass sheen
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -337,14 +385,13 @@ fun FloatingLiquidGlassBottomBar(
                 .background(
                     Brush.verticalGradient(
                         0.0f to Color(0x2EFFFFFF),
-                        0.15f to Color(0x1864D2FF), // Subtle cyan diffraction
-                        0.32f to Color(0x10FF80AB), // Subtle rose diffraction
-                        0.65f to Color.Transparent
+                        0.22f to Color(0x12FFFFFF),
+                        0.60f to Color.Transparent
                     )
                 )
         )
 
-        // Radial liquid glass glow with chromatic dispersion on touch
+        // Radial liquid glass glow on touch
         if (isTouching && touchPosition != null) {
             Box(
                 modifier = Modifier
@@ -354,9 +401,8 @@ fun FloatingLiquidGlassBottomBar(
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    Color(0x22FFFFFF),
-                                    Color(0x1664D2FF), // Cyan halo
-                                    Color(0x10E040FB), // Magenta halo
+                                    Color(0x28FFFFFF),
+                                    Color(0x10FFFFFF),
                                     Color.Transparent
                                 ),
                                 center = touchPosition!!,
@@ -372,7 +418,7 @@ fun FloatingLiquidGlassBottomBar(
         Box(
             modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp)
         ) {
-            // The single translucent frosted liquid glass indicator pill with prismatic diffraction
+            // The single translucent frosted liquid glass indicator pill with hydrodynamic & optical lens distortion
             if (hasInitialized && animW > 0f) {
                 Box(
                     modifier = Modifier
@@ -392,6 +438,16 @@ fun FloatingLiquidGlassBottomBar(
                             ambientColor = Color(0x25000000),
                             spotColor = Color(0x40000000)
                         )
+                        // Hydrodynamic squash & stretch and AGSL optical lens refraction distortion
+                        .graphicsLayer {
+                            scaleX = 1f + stretchX
+                            scaleY = 1f - squashY
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && pillLensShader != null && size.width > 0f && size.height > 0f) {
+                                pillLensShader.setFloatUniform("uResolution", size.width, size.height)
+                                pillLensShader.setFloatUniform("uDistortion", -0.35f - motionFactor * 0.25f)
+                                renderEffect = RenderEffect.createRuntimeShaderEffect(pillLensShader, "contents").asComposeRenderEffect()
+                            }
+                        }
                         .clip(pillShape)
                         .background(
                             Brush.verticalGradient(
@@ -401,39 +457,33 @@ fun FloatingLiquidGlassBottomBar(
                                 )
                             )
                         )
-                        // Multi-spectral diffraction border on the active indicator pill
                         .border(
                             BorderStroke(
                                 1.dp,
-                                Brush.linearGradient(
+                                Brush.verticalGradient(
                                     listOf(
-                                        Color(0xBBFFFFFF), // Brilliant white
-                                        Color(0x8864D2FF), // Cyan spectral fringe
-                                        Color(0x75E040FB), // Violet spectral fringe
-                                        Color(0x50FFD54F), // Amber fringe
-                                        Color(0x45FFFFFF)  // Soft white
+                                        Color(0xD0FFFFFF), // Brilliant specular top rim
+                                        Color(0x45FFFFFF)  // Soft lower rim
                                     )
                                 )
                             ),
                             pillShape
                         )
                 ) {
-                    // Prismatic iridescent diffraction sheen inside the sliding pill
+                    // Optical lens radial caustic sheen inside the sliding pill
                     Box(
                         modifier = Modifier
                             .matchParentSize()
                             .clip(pillShape)
                             .background(
-                                Brush.linearGradient(
+                                Brush.radialGradient(
                                     colors = listOf(
-                                        Color(0x2A64D2FF), // Prismatic cyan
-                                        Color(0x38FFFFFF), // White specular core
-                                        Color(0x24FF80AB), // Prismatic rose
-                                        Color(0x18FFD54F), // Prismatic amber
-                                        Color(0x00FFFFFF)
+                                        Color(0x40FFFFFF), // Bright specular center
+                                        Color(0x15FFFFFF), // Soft translucent mid
+                                        Color.Transparent
                                     ),
-                                    start = Offset(0f, 0f),
-                                    end = Offset(animW, animH)
+                                    center = Offset(animW * 0.5f, animH * 0.25f),
+                                    radius = maxOf(animW, animH)
                                 )
                             )
                     )
@@ -481,7 +531,18 @@ fun FloatingLiquidGlassBottomBar(
                             .padding(
                                 horizontal = if (isSelected) 16.dp else 13.dp,
                                 vertical = 9.dp
-                            ),
+                            )
+                            .graphicsLayer {
+                                if (isSelected) {
+                                    scaleX = 1.04f
+                                    scaleY = 1.04f
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && tabLensShader != null && size.width > 0f && size.height > 0f) {
+                                        tabLensShader.setFloatUniform("uResolution", size.width, size.height)
+                                        tabLensShader.setFloatUniform("uDistortion", -0.16f - motionFactor * 0.12f)
+                                        renderEffect = RenderEffect.createRuntimeShaderEffect(tabLensShader, "contents").asComposeRenderEffect()
+                                    }
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
