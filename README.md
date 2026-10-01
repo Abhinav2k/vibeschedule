@@ -6,26 +6,28 @@
 [![Android CI](https://img.shields.io/badge/Android-SDK%2026--34-green?logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-purple?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20M3-blue?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Release Version](https://img.shields.io/badge/version-v1.4.19-indigo)](app/build.gradle.kts)
+[![Release Version](https://img.shields.io/badge/version-v1.4.24-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
 ---
 
 ## 📖 Overview
 
-**VibeSchedule** is a 100% native Android application designed to automatically manage your device's ringer modes and quiet hours. It eliminates the hassle of manually muting and unmuting your phone during work, school, sleep, or meetings.
+**VibeSchedule** is a lightweight, 100% native Android application designed to automatically manage your device's ringer modes and quiet hours. It eliminates the hassle of manually muting and unmuting your phone during work, classes, sleep, or meetings.
 
 The app schedules exact system transitions between **Normal**, **Vibrate**, and **Silent (Do Not Disturb)** modes using Android's native `AudioManager` and `NotificationManager`. When a schedule window finishes, your ringer is automatically restored to your default mode.
 
 ---
 
-## ✨ Features
+## 🚀 Download & Installation
 
-### 🏝️ OriginOS Origin Island & Dynamic Capsule
-- **Native OriginOS 4/5/6/7 Support**: Injects vivo's native `notification.superx` bundle extras and Android chronometer countdowns so active schedules and Quick Mute appear directly in **Origin Island (原子岛)** and punch-hole live capsules.
-- **Cross-OEM Status Bar Capsules**: Fully compatible with OnePlus/OPPO ColorOS Fluid Cloud, Xiaomi HyperOS Dynamic Notch, and Android 15/16 Rich Ongoing Notifications.
-- **Interactive Controls**: Tap to expand the island into a full interactive card with live countdown, progress bar, and instant **Skip to :00** and **End Now** actions.
-- **Always-On Display (AOD)**: Clean public notification payload ensures the live status badge remains visible on lock screens and AOD.
+Get the latest signed APK directly from GitHub Releases:
+
+- 📦 **[Download VibeSchedule v1.4.24 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
+
+---
+
+## ✨ Features
 
 ### ⏰ Automated Sound Schedules
 - **Precise 12-Hour AM/PM Time Setting**: Native 12-hour dial picker with dedicated AM/PM segmented selectors for rapid scheduling.
@@ -34,23 +36,24 @@ The app schedules exact system transitions between **Normal**, **Vibrate**, and 
 - **Automatic Reversion**: Restores your ringer to Normal (or your chosen revert mode) the instant a schedule ends.
 
 ### 🔕 Quick Mute Timers
-- One-tap temporary quiet sessions for **15 min**, **30 min**, **1 hour**, or **2 hours**.
-- Real-time countdown timer tracking elapsed and remaining minutes/seconds.
-- Built-in conflict detection: warns if a recurring schedule rule is already running.
+- One-tap temporary quiet sessions for **15 min**, **30 min**, **1 hour**, **2 hours**, or **4 hours**.
+- Conflict detection: warns if a recurring schedule rule is already running.
+
+### 📱 Redesigned Interactive Home Screen Widget (2×1)
+- **Idle State**: Shows only a minimal, centered **Ring icon**. Tapping it opens a quick popup dialog to select a timer directly without cluttering your home screen.
+- **Active Timer State**: Displays remaining time and elapsed progress with a single centered **Red X** cancel button.
+- **Active Schedule State**: Displays the active rule name and duration with two interactive controls: **Skip to :00** and **Cancel**.
+
+### 🔔 Status Bar & Lock Screen Notification Card
+- **App Status Bar Icon**: Shows the official VibeSchedule app icon directly in your device's status bar.
+- **Lock Screen & AOD Visible**: High-priority ongoing status card with remaining countdown, mode badge, and live progress bar.
+- **Quick Controls**: Instant **"End Now"** and **"Skip to :00"** actions accessible without unlocking or expanding.
 
 ### ⏸️ Pause Until Next :00
-- Need ringtone enabled temporarily during an active quiet window? Pause an active rule or a rule starting within 20 minutes until the top of the next hour with a single tap.
+- Need ringtone enabled temporarily during an active quiet window? Pause an active rule or an upcoming rule until the top of the next hour with a single tap.
 
-### 🔔 Lock Screen & Status Bar Notification Card
-- High-priority, ongoing notification card displaying active rule title, mode badge, remaining countdown, and live progress bar.
-- Interactive action buttons: **"End Now"** and **"Skip to :00"** accessible directly from the lock screen.
-- Optimized for modern Android versions (Android 14, 15, and 16 / OriginOS).
-
-### 📱 2×1 Interactive Home Screen Widget
-- Native Android AppWidget (`VibeWidgetProvider`) displaying current active sound state, remaining schedule duration, and instant one-tap **Skip** and **Cancel** controls.
-
-### 🔄 Reboot Persistence & Reliability
-- Uses Android's `AlarmManager` with exact alarms (`setExactAndAllowWhileIdle`) for battery-optimized, reliable execution.
+### 🔄 Reboot Persistence & Battery Efficiency
+- Uses Android's `AlarmManager` with exact alarms (`setExactAndAllowWhileIdle`) for zero background battery drain.
 - Registered `BootReceiver` automatically recalculates and reschedules all active alarms upon device restart.
 
 ### 💎 Obsidian Liquid Dark Glass Design
@@ -78,7 +81,7 @@ To function as a system ringer scheduler, the app requires the following Android
 
 ```text
 ├── .github/workflows/
-│   └── build.yml               # Automated GitHub Actions workflow to build debug APK
+│   └── build.yml               # Automated GitHub Actions workflow to build release & debug APKs
 ├── app/                        # Native Android Application module
 │   ├── src/main/
 │   │   ├── AndroidManifest.xml # Permissions, activities, receivers, and widget providers
@@ -87,46 +90,35 @@ To function as a system ringer scheduler, the app requires the following Android
 │   │   │   ├── model/          # ScheduleRule, SoundMode data models
 │   │   │   ├── receiver/       # AlarmReceiver, BootReceiver, QuickMuteReceiver
 │   │   │   ├── scheduler/      # AlarmScheduler (Exact AlarmManager integration)
-│   │   │   ├── ui/             # Jetpack Compose UI (Screens, Components, Theme)
-│   │   │   ├── util/           # NotificationHelper, SoundModeHelper
+│   │   │   ├── ui/             # Jetpack Compose UI (Screens, Popup Activity, Theme)
+│   │   │   ├── util/           # NotificationHelper, SoundModeHelper, QuickMuteHelper
 │   │   │   └── widget/         # VibeWidgetProvider (2x1 AppWidget)
 │   │   └── res/                # Vector drawables, widget layouts, strings, and icons
-│   └── build.gradle.kts        # Android module build configuration (v1.4.18)
+│   └── build.gradle.kts        # Android module build configuration (v1.4.24)
 ├── build.gradle.kts            # Root Gradle build script
+├── gradle.properties           # Gradle JVM settings
 └── settings.gradle.kts         # Root Gradle settings
 ```
 
 ---
 
-## 🚀 Building the APK
+## 🚀 Building from Source
 
-### Automated GitHub Releases (Recommended)
-Every push to `main` or tag trigger automatically runs `.github/workflows/build.yml` to compile both signed Release and Debug APKs, generate SHA-256 checksums, and publish an official **GitHub Release**:
-- **Release APK**: `VibeSchedule-v1.4.18.apk` (Signed production build)
-- **Debug APK**: `VibeSchedule-v1.4.18-debug.apk` (Testing & logcat build)
-- **Direct Link**: Navigate to the **Releases** tab on GitHub to download the latest APK directly to your phone.
-- **Workflow Artifacts**: Also stored under the **Actions** tab for each workflow run.
-
-### Local Build via Android Studio or Terminal
 Ensure **JDK 17** is installed and configured:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/VibeSchedule.git
-cd VibeSchedule
+git clone https://github.com/Abhinav2k/vibeschedule.git
+cd vibeschedule
 
-# Build the debug APK using Gradle wrapper
-./gradlew assembleDebug
+# Build release and debug APKs using Gradle
+gradle assembleRelease assembleDebug
 ```
 
-The compiled APK will be located at:
+Compiled APKs will be located at:
 ```text
-app/build/outputs/apk/debug/VibeSchedule-v1.4.18-debug.apk
-```
-
-You can install it directly to an attached Android device or emulator:
-```bash
-adb install -r app/build/outputs/apk/debug/VibeSchedule-v1.4.18-debug.apk
+app/build/outputs/apk/release/app-release.apk
+app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ---
