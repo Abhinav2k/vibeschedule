@@ -1,5 +1,6 @@
 package com.vibeschedule.app.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -9,6 +10,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -392,7 +397,7 @@ data class NavTabItem(
 /**
  * Floating Liquid Glass Navigation Bar inspired by LastWave Native's liquid glass player card.
  * Features a continuous-curvature squircle dock capsule, specular top rim light, interactive radial touch glow,
- * and a single white liquid glass indicator pill that smoothly slides with spatial spring physics across tabs.
+ * and a single translucent frosted liquid glass indicator pill that smoothly slides with spatial spring physics across tabs.
  */
 @Composable
 fun FloatingLiquidGlassBottomBar(
@@ -426,7 +431,7 @@ fun FloatingLiquidGlassBottomBar(
         )
     }
 
-    // Animatable properties for the sliding white indicator pill
+    // Animatable properties for the sliding liquid glass indicator pill
     val indicatorOffsetX = remember { Animatable(0f) }
     val indicatorOffsetY = remember { Animatable(0f) }
     val indicatorWidth = remember { Animatable(0f) }
@@ -440,6 +445,7 @@ fun FloatingLiquidGlassBottomBar(
     // Smoothly slide the indicator pill when selectedTab changes or layout measures
     LaunchedEffect(selectedTab, tabBounds[selectedTab]) {
         val bounds = tabBounds[selectedTab] ?: return@LaunchedEffect
+        if (bounds.width <= 0f) return@LaunchedEffect
         if (!isInitialized) {
             indicatorOffsetX.snapTo(bounds.x)
             indicatorOffsetY.snapTo(bounds.y)
@@ -462,7 +468,7 @@ fun FloatingLiquidGlassBottomBar(
                 shape = capsuleShape,
                 clip = false,
                 ambientColor = Color(0x60000000),
-                spotColor = Color(0x88000000)
+                spotColor = Color(0x90000000)
             )
             // Clip to continuous curvature squircle
             .clip(capsuleShape)
@@ -470,9 +476,9 @@ fun FloatingLiquidGlassBottomBar(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0x75202436), // Translucent frosted slate-indigo top
-                        Color(0x48121524), // Highly transparent middle for glass refraction
-                        Color(0x60181B2B)  // Translucent bottom
+                        Color(0x8C1C2030), // Translucent frosted slate-indigo top
+                        Color(0x65111422), // Highly transparent middle for glass refraction
+                        Color(0x80171A2A)  // Translucent bottom
                     )
                 )
             )
@@ -482,10 +488,10 @@ fun FloatingLiquidGlassBottomBar(
                     1.2.dp,
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0x99FFFFFF), // Bright specular highlight on top curve
-                            Color(0x35FFFFFF), // Soft transition
-                            Color(0x10FFFFFF), // Subtle rim
-                            Color(0x28FFFFFF)  // Subtle bottom bounce highlight
+                            Color(0x85FFFFFF), // Bright specular highlight on top curve
+                            Color(0x28FFFFFF), // Soft transition
+                            Color(0x0CFFFFFF), // Subtle rim
+                            Color(0x24FFFFFF)  // Subtle bottom bounce highlight
                         )
                     )
                 ),
@@ -517,9 +523,9 @@ fun FloatingLiquidGlassBottomBar(
                 .clip(capsuleShape)
                 .background(
                     Brush.verticalGradient(
-                        0.0f to Color(0x28FFFFFF),
-                        0.25f to Color(0x0CFFFFFF),
-                        0.6f to Color(0x00FFFFFF)
+                        0.0f to Color(0x25FFFFFF),
+                        0.28f to Color(0x0CFFFFFF),
+                        0.60f to Color.Transparent
                     )
                 )
         )
@@ -534,7 +540,7 @@ fun FloatingLiquidGlassBottomBar(
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.15f),
+                                    Color.White.copy(alpha = 0.16f),
                                     Color.Transparent
                                 ),
                                 center = touchPosition!!,
@@ -546,11 +552,11 @@ fun FloatingLiquidGlassBottomBar(
             )
         }
 
-        // Inner track containing the sliding white pill indicator and tab items
+        // Inner track containing the sliding liquid glass pill indicator and tab items
         Box(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp)
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp)
         ) {
-            // The single white liquid glass indicator pill that slides horizontally to the active tab
+            // The single translucent frosted liquid glass indicator pill that slides horizontally to the active tab
             if (isInitialized && indicatorWidth.value > 0f) {
                 Box(
                     modifier = Modifier
@@ -567,22 +573,45 @@ fun FloatingLiquidGlassBottomBar(
                         .shadow(
                             elevation = 6.dp,
                             shape = pillShape,
+                            ambientColor = Color(0x25000000),
                             spotColor = Color(0x40000000)
                         )
+                        .clip(pillShape)
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE2E7F0)
+                                    Color(0x44FFFFFF), // Luminous frosted white top
+                                    Color(0x22FFFFFF)  // Luminous translucent white bottom
+                                )
+                            )
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0x95FFFFFF), // Brilliant specular top rim
+                                        Color(0x35FFFFFF)  // Soft lower rim
+                                    )
                                 )
                             ),
                             pillShape
                         )
-                        .border(
-                            BorderStroke(0.8.dp, Color(0xB0FFFFFF)),
-                            pillShape
-                        )
-                )
+                ) {
+                    // Meniscus lens radial sheen inside the sliding pill
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clip(pillShape)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(Color(0x2AFFFFFF), Color.Transparent),
+                                    center = Offset(indicatorWidth.value * 0.5f, 0f),
+                                    radius = maxOf(indicatorWidth.value, indicatorHeight.value)
+                                )
+                            )
+                    )
+                }
             }
 
             // Tab items row positioned on top of the sliding indicator
@@ -593,8 +622,8 @@ fun FloatingLiquidGlassBottomBar(
                 items.forEachIndexed { index, item ->
                     val isSelected = selectedTab == index
                     val animatedContentColor by animateColorAsState(
-                        targetValue = if (isSelected) Color(0xFF0F111A) else Color(0xCCFFFFFF),
-                        animationSpec = tween(durationMillis = 200),
+                        targetValue = if (isSelected) Color(0xFFFFFFFF) else Color(0x80FFFFFF),
+                        animationSpec = tween(durationMillis = 180),
                         label = "tabContentColor"
                     )
 
@@ -621,7 +650,10 @@ fun FloatingLiquidGlassBottomBar(
                                     }
                                 }
                             )
-                            .padding(horizontal = 16.dp, vertical = 9.dp),
+                            .padding(
+                                horizontal = if (isSelected) 16.dp else 13.dp,
+                                vertical = 9.dp
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
@@ -632,16 +664,40 @@ fun FloatingLiquidGlassBottomBar(
                                 imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                                 contentDescription = item.title,
                                 tint = animatedContentColor,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = item.title,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = animatedContentColor,
-                                letterSpacing = (-0.2).sp
-                            )
+
+                            // Only active tab expands its label! Inactive tabs are clean icons only
+                            AnimatedVisibility(
+                                visible = isSelected,
+                                enter = fadeIn(animationSpec = tween(180, delayMillis = 40)) +
+                                        expandHorizontally(
+                                            animationSpec = spring(
+                                                dampingRatio = 0.76f,
+                                                stiffness = 380f
+                                            )
+                                        ),
+                                exit = fadeOut(animationSpec = tween(100)) +
+                                        shrinkHorizontally(
+                                            animationSpec = spring(
+                                                dampingRatio = 0.76f,
+                                                stiffness = 380f
+                                            )
+                                        )
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = item.title,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = animatedContentColor,
+                                        letterSpacing = (-0.2).sp,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                            }
                         }
                     }
                 }

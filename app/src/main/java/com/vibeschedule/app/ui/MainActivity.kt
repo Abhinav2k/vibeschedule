@@ -23,12 +23,16 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import com.vibeschedule.app.ui.components.FloatingLiquidGlassBottomBar
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -228,6 +232,23 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     2 -> SettingsScreen()
                 }
             }
+
+            // Soft bottom gradient scrim to diffuse scrolling content smoothly under the floating dock
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(115.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color(0x600B0D14),
+                                Color(0xD80B0D14)
+                            )
+                        )
+                    )
+            )
 
             // Floating Action Button for Schedules Tab (Tab 1), positioned cleanly above the floating bar
             AnimatedVisibility(

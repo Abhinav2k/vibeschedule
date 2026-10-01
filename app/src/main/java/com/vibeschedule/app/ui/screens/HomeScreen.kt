@@ -474,6 +474,6 @@ fun HomeScreen(
         }
 
         // Clearance spacer for floating liquid glass navigation bar
-        Spacer(modifier = Modifier.height(108.dp))
+        Spacer(modifier = Modifier.height(120.dp))
     }
 }

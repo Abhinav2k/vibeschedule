@@ -6,7 +6,7 @@
 [![Android CI](https://img.shields.io/badge/Android-SDK%2026--34-green?logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-purple?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20M3-blue?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Release Version](https://img.shields.io/badge/version-v1.4.26-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
+[![Release Version](https://img.shields.io/badge/version-v1.4.27-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
 ---
@@ -23,7 +23,7 @@ The app schedules exact system transitions between **Normal**, **Vibrate**, and 
 
 Get the latest signed APK directly from GitHub Releases:
 
-- 📦 **[Download VibeSchedule v1.4.26 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
+- 📦 **[Download VibeSchedule v1.4.27 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
 
 ---
 
@@ -56,9 +56,10 @@ Get the latest signed APK directly from GitHub Releases:
 - Uses Android's `AlarmManager` with exact alarms (`setExactAndAllowWhileIdle`) for zero background battery drain.
 - Registered `BootReceiver` automatically recalculates and reschedules all active alarms upon device restart.
 
-### 💎 Floating Liquid Glass Navigation Bar
-- G2 continuous-curvature squircle dock capsule rendered with LastWave-Native liquid glass optics, specular rim lighting, top lens sheen, soft ambient elevation, and interactive radial touch glow.
-- **Sliding Liquid Pill Indicator**: Seamless spatial spring animation that physically glides the white frosted active indicator across the track to the selected tab with haptic feedback.
+### 💎 Floating Liquid Glass Compact Dock
+- **Compact Centered Dock**: Floating pill capsule with G2 continuous-curvature superellipse squircle shape (`SquircleShape`), multi-layered specular rim lighting, top lens sheen, soft ambient elevation, and interactive touch glow.
+- **Animated Expandable Labels**: Only the active tab displays its title, expanding with fluid spring animation (`expandHorizontally + fadeIn`), while inactive tabs remain compact and sleek with pure icons.
+- **Sliding Translucent Frosted Glass Pill**: A translucent liquid glass indicator pill with luminous specular borders and radial sheen that glides seamlessly across tabs with spatial spring physics and tactile haptic feedback.
 - Fully edge-to-edge transparent system navigation bar without opaque bars or docked slots.
 
 ---

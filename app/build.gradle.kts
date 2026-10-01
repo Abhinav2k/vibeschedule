@@ -11,8 +11,8 @@ android {
         applicationId = "com.vibeschedule.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 30
-        versionName = "1.4.26"
+        versionCode = 31
+        versionName = "1.4.27"
         manifestPlaceholders["appName"] = "VibeSchedule"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
