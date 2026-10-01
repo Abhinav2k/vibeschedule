@@ -85,6 +85,9 @@ import android.os.Build
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.graphicsLayer
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.hazeChild
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
@@ -260,17 +263,17 @@ private const val LIQUID_GLASS_PILL_SHADER = """
         // 6. Fluid motion distortion (caustic light slosh during movement)
         float slosh = uMotion * (0.15 + 0.10 * sin(fragCoord.x * 0.05));
 
-        // 7. Base frosted glass translucency
+        // 7. Frosted optical glass translucency (tuned so blurred backdrop is vividly refracted)
         float vertFade = fragCoord.y / uResolution.y;
-        float baseAlpha = mix(0.38, 0.18, vertFade) + slosh;
+        float baseAlpha = mix(0.12, 0.05, vertFade) + slosh * 0.4;
 
         // 8. Subtle optical dispersion (microscopic chromatic refraction at the edge)
-        float dispersion = pow(1.0 - dNorm, 2.0) * (0.08 + uMotion * 0.05);
-        float rC = 1.0 + dispersion * 0.4;
+        float dispersion = pow(1.0 - dNorm, 2.0) * (0.12 + uMotion * 0.06);
+        float rC = 1.0 + dispersion * 0.45;
         float gC = 1.0;
-        float bC = 1.0 + dispersion * 1.1;
+        float bC = 1.0 + dispersion * 1.25;
 
-        float alpha = clamp(baseAlpha + rimSpecular + specularGlint + bottomBounce, 0.0, 0.95);
+        float alpha = clamp(baseAlpha + rimSpecular + specularGlint + bottomBounce, 0.0, 0.72);
         float edgeAa = smoothstep(0.5, -0.5, dist);
         float finalA = alpha * edgeAa;
 
@@ -299,7 +302,7 @@ private const val LIQUID_GLASS_DOCK_SHADER = """
 
     half4 main(float2 fragCoord) {
         if (uResolution.x <= 0.0 || uResolution.y <= 0.0) {
-            return half4(0.06, 0.07, 0.10, 0.55);
+            return half4(0.06, 0.07, 0.10, 0.35);
         }
 
         float2 halfSize = uResolution * 0.5;
@@ -335,14 +338,14 @@ private const val LIQUID_GLASS_DOCK_SHADER = """
             touchGlow = exp(-tDist * tDist / 4500.0) * uTouchActive * 0.35;
         }
 
-        // Translucent dark obsidian glass base
+        // Translucent liquid obsidian glass base (tuned to let Haze backdrop blur shine through)
         float vert = fragCoord.y / uResolution.y;
-        float baseAlpha = mix(0.55, 0.40, vert);
+        float baseAlpha = mix(0.12, 0.06, vert);
 
-        float rCol = mix(0.11, 0.07, vert) + rim * 0.6 + spec + touchGlow;
-        float gCol = mix(0.13, 0.08, vert) + rim * 0.6 + spec + touchGlow;
-        float bCol = mix(0.19, 0.13, vert) + rim * 0.75 + spec + touchGlow;
-        float totalAlpha = clamp(baseAlpha + rim + spec * 0.5 + bottom + touchGlow, 0.0, 0.88);
+        float rCol = mix(0.10, 0.06, vert) + rim * 0.65 + spec + touchGlow;
+        float gCol = mix(0.12, 0.08, vert) + rim * 0.65 + spec + touchGlow;
+        float bCol = mix(0.18, 0.12, vert) + rim * 0.85 + spec + touchGlow;
+        float totalAlpha = clamp(baseAlpha + rim + spec * 0.5 + bottom + touchGlow, 0.0, 0.68);
         float edgeAa = smoothstep(0.5, -0.5, dist);
         float finalA = totalAlpha * edgeAa;
 
@@ -352,14 +355,16 @@ private const val LIQUID_GLASS_DOCK_SHADER = """
 
 /**
  * Floating Liquid Glass Navigation Bar inspired by LastWave Native's liquid glass player card.
- * Features a continuous-curvature squircle dock capsule, specular top rim light, interactive radial touch glow,
+ * Features real-time hardware backdrop blur & optical distortion of whatever is behind it using Haze,
+ * continuous-curvature squircle dock capsule, specular top rim light, interactive radial touch glow,
  * and a single translucent frosted liquid glass indicator pill that smoothly slides with spatial spring physics across tabs.
  */
 @Composable
 fun FloatingLiquidGlassBottomBar(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null
 ) {
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
@@ -460,6 +465,20 @@ fun FloatingLiquidGlassBottomBar(
             )
             // Clip to clean pill capsule shape
             .clip(dockPillShape)
+            // Real-time backdrop blur & optical distortion of scrolling content underneath
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeChild(
+                        state = hazeState,
+                        shape = dockPillShape,
+                        style = HazeStyle(
+                            blurRadius = 24.dp,
+                            tint = Color(0x30101422),
+                            noiseFactor = 0.08f
+                        )
+                    )
+                } else Modifier
+            )
             // Translucent glass body with AGSL SDF optical refraction on API 33+ or multi-stop gradient fallback
             .drawBehind {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && dockShader != null && size.width > 0f && size.height > 0f) {
@@ -475,9 +494,9 @@ fun FloatingLiquidGlassBottomBar(
                     drawRoundRect(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0x8C1C2030), // Translucent frosted slate-indigo top
-                                Color(0x65111422), // Highly transparent middle for glass refraction
-                                Color(0x80171A2A)  // Translucent bottom
+                                Color(0x351C2030), // Translucent frosted slate-indigo top
+                                Color(0x15111422), // Highly transparent middle for glass refraction
+                                Color(0x28171A2A)  // Translucent bottom
                             )
                         ),
                         size = size,
@@ -587,6 +606,20 @@ fun FloatingLiquidGlassBottomBar(
                             translationX = fluidLagX
                         }
                         .clip(pillShape)
+                        // Dynamic backdrop blur and luminous magnifying lens over the active tab position
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeChild(
+                                    state = hazeState,
+                                    shape = pillShape,
+                                    style = HazeStyle(
+                                        blurRadius = 14.dp,
+                                        tint = Color(0x22FFFFFF),
+                                        noiseFactor = 0.04f
+                                    )
+                                )
+                            } else Modifier
+                        )
                         .drawBehind {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && pillShader != null && size.width > 0f && size.height > 0f) {
                                 pillShader.setFloatUniform("uResolution", size.width, size.height)
@@ -603,8 +636,8 @@ fun FloatingLiquidGlassBottomBar(
                                 drawRoundRect(
                                     brush = Brush.verticalGradient(
                                         listOf(
-                                            Color(0x44FFFFFF), // Luminous frosted white top
-                                            Color(0x20FFFFFF)  // Luminous translucent white bottom
+                                            Color(0x30FFFFFF), // Luminous frosted white top
+                                            Color(0x12FFFFFF)  // Luminous translucent white bottom
                                         )
                                     ),
                                     size = size,
@@ -633,8 +666,8 @@ fun FloatingLiquidGlassBottomBar(
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(
-                                        Color(0x40FFFFFF), // Bright specular center
-                                        Color(0x15FFFFFF), // Soft translucent mid
+                                        Color(0x30FFFFFF), // Bright specular center
+                                        Color(0x10FFFFFF), // Soft translucent mid
                                         Color.Transparent
                                     ),
                                     center = Offset(animW * 0.5f + fluidLagX * 1.5f, animH * 0.25f),

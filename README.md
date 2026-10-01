@@ -6,7 +6,7 @@
 [![Android CI](https://img.shields.io/badge/Android-SDK%2026--34-green?logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-purple?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20M3-blue?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Release Version](https://img.shields.io/badge/version-v1.4.33-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
+[![Release Version](https://img.shields.io/badge/version-v1.4.34-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
 ---
@@ -23,7 +23,7 @@ The app schedules exact system transitions between **Normal**, **Vibrate**, and 
 
 Get the latest signed APK directly from GitHub Releases:
 
-- 📦 **[Download VibeSchedule v1.4.33 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
+- 📦 **[Download VibeSchedule v1.4.34 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
 
 ---
 
@@ -56,10 +56,11 @@ Get the latest signed APK directly from GitHub Releases:
 - Uses Android's `AlarmManager` with exact alarms (`setExactAndAllowWhileIdle`) for zero background battery drain.
 - Registered `BootReceiver` automatically recalculates and reschedules all active alarms upon device restart.
 
-### 💎 Floating Liquid Glass Compact Dock
-- **Compact Centered Dock**: Floating pill capsule with G2 continuous-curvature superellipse squircle shape (`SquircleShape`), multi-layered specular rim lighting, top lens sheen, soft ambient elevation, and interactive touch glow.
+### 💎 Floating Liquid Glass Dock with Real-Time Backdrop Blur & Distortion
+- **True Backdrop Distortion & Blur**: Utilizes `Haze` hardware-accelerated RenderNode capture to sample and optically refract whatever is behind the floating bar. Content scrolling underneath (cards, text, buttons) is dynamically blurred and distorted through the glass capsule and sliding indicator.
+- **Compact Centered Dock**: Floating pill capsule with continuous curvature, multi-layered specular rim lighting, top lens sheen, soft ambient elevation, and interactive touch glow.
 - **Animated Expandable Labels**: Only the active tab displays its title, expanding with fluid spring animation (`expandHorizontally + fadeIn`), while inactive tabs remain compact and sleek with pure icons.
-- **Sliding Translucent Frosted Glass Pill**: A translucent liquid glass indicator pill with luminous specular borders and radial sheen that glides seamlessly across tabs with spatial spring physics and tactile haptic feedback.
+- **Sliding Liquid Glass Indicator Pill**: Dynamic lens refraction and hydrodynamic squash & stretch that glides seamlessly across tabs with spatial spring physics and tactile haptic feedback.
 - Fully edge-to-edge transparent system navigation bar without opaque bars or docked slots.
 
 ---

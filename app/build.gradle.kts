@@ -11,8 +11,8 @@ android {
         applicationId = "com.vibeschedule.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 38
-        versionName = "1.4.33"
+        versionCode = 40
+        versionName = "1.4.34"
         manifestPlaceholders["appName"] = "VibeSchedule"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -64,6 +64,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("dev.chrisbanes.haze:haze-android:0.7.3")
     implementation("com.google.code.gson:gson:2.11.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

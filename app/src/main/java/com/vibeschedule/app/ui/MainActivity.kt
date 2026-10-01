@@ -35,6 +35,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.vibeschedule.app.ui.components.FloatingLiquidGlassBottomBar
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -125,6 +127,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
     var showDialog by remember { mutableStateOf(false) }
     var editingRule by remember { mutableStateOf<ScheduleRule?>(null) }
     val currentSoundMode by viewModel.currentSoundMode.collectAsState()
+    val hazeState = remember { HazeState() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -198,65 +201,54 @@ fun MainAppScreen(viewModel: MainViewModel) {
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Screen content: fills the entire screen under the floating bar, padded only by topBar
-            AnimatedContent(
-                targetState = selectedTab,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = innerPadding.calculateTopPadding()),
-                transitionSpec = {
-                    val goingRight = targetState > previousTab
-                    val slideSpring = spring<IntOffset>(
-                        dampingRatio = 0.78f,
-                        stiffness = 420f
-                    )
-                    val fadeSpec = tween<Float>(durationMillis = 200, easing = FastOutSlowInEasing)
-
-                    val enter = slideInHorizontally(
-                        animationSpec = slideSpring
-                    ) { fullWidth ->
-                        if (goingRight) (fullWidth * 0.20f).toInt() else (-fullWidth * 0.20f).toInt()
-                    } + fadeIn(animationSpec = fadeSpec)
-
-                    val exit = slideOutHorizontally(
-                        animationSpec = slideSpring
-                    ) { fullWidth ->
-                        if (goingRight) (-fullWidth * 0.20f).toInt() else (fullWidth * 0.20f).toInt()
-                    } + fadeOut(animationSpec = fadeSpec)
-
-                    enter togetherWith exit
-                },
-                label = "tabTransition"
-            ) { target ->
-                when (target) {
-                    0 -> HomeScreen(
-                        viewModel = viewModel,
-                        onNavigateToSchedules = { previousTab = selectedTab; selectedTab = 1 }
-                    )
-                    1 -> SchedulesScreen(
-                        viewModel = viewModel,
-                        onEditRule = { rule -> editingRule = rule; showDialog = true }
-                    )
-                    2 -> SettingsScreen()
-                }
-            }
-
-            // Soft bottom gradient scrim to diffuse scrolling content smoothly under the floating dock
+            // Screen content container captured in real-time by Haze for authentic backdrop distortion & blur
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(115.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color(0x600B0D14),
-                                Color(0xD80B0D14)
-                            )
+                    .fillMaxSize()
+                    .haze(hazeState)
+            ) {
+                AnimatedContent(
+                    targetState = selectedTab,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = innerPadding.calculateTopPadding()),
+                    transitionSpec = {
+                        val goingRight = targetState > previousTab
+                        val slideSpring = spring<IntOffset>(
+                            dampingRatio = 0.78f,
+                            stiffness = 420f
                         )
-                    )
-            )
+                        val fadeSpec = tween<Float>(durationMillis = 200, easing = FastOutSlowInEasing)
+
+                        val enter = slideInHorizontally(
+                            animationSpec = slideSpring
+                        ) { fullWidth ->
+                            if (goingRight) (fullWidth * 0.20f).toInt() else (-fullWidth * 0.20f).toInt()
+                        } + fadeIn(animationSpec = fadeSpec)
+
+                        val exit = slideOutHorizontally(
+                            animationSpec = slideSpring
+                        ) { fullWidth ->
+                            if (goingRight) (-fullWidth * 0.20f).toInt() else (fullWidth * 0.20f).toInt()
+                        } + fadeOut(animationSpec = fadeSpec)
+
+                        enter togetherWith exit
+                    },
+                    label = "tabTransition"
+                ) { target ->
+                    when (target) {
+                        0 -> HomeScreen(
+                            viewModel = viewModel,
+                            onNavigateToSchedules = { previousTab = selectedTab; selectedTab = 1 }
+                        )
+                        1 -> SchedulesScreen(
+                            viewModel = viewModel,
+                            onEditRule = { rule -> editingRule = rule; showDialog = true }
+                        )
+                        2 -> SettingsScreen()
+                    }
+                }
+            }
 
             // Floating Action Button for Schedules Tab (Tab 1), positioned cleanly above the floating bar
             AnimatedVisibility(
@@ -278,13 +270,14 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 )
             }
 
-            // Truly Floating Liquid Glass Bottom Navigation Bar overlay
+            // Truly Floating Liquid Glass Bottom Navigation Bar with real-time backdrop blur & optical distortion
             FloatingLiquidGlassBottomBar(
                 selectedTab = selectedTab,
                 onTabSelected = { newTab ->
                     previousTab = selectedTab
                     selectedTab = newTab
                 },
+                hazeState = hazeState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
