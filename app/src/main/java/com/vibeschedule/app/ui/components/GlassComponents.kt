@@ -80,12 +80,7 @@ import com.vibeschedule.app.ui.theme.GlassBorderBrush
 import com.vibeschedule.app.ui.theme.SurfaceGlass
 import com.vibeschedule.app.ui.theme.TextPrimary
 import com.vibeschedule.app.ui.theme.TextSecondary
-import android.graphics.RenderEffect
-import android.graphics.RuntimeShader
-import android.os.Build
-import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -198,73 +193,6 @@ data class NavTabItem(
     val unselectedIcon: ImageVector
 )
 
-private const val FLOATING_CARD_REFRACTION_SHADER = """
-    uniform shader content;
-    uniform float2 size;
-    uniform float2 offset;
-    uniform float4 cornerRadii;
-    uniform float refractionHeight;
-    uniform float refractionAmount;
-    uniform float depthEffect;
-
-    float radiusAt(float2 coord, float4 radii) {
-        if (coord.x >= 0.0) {
-            if (coord.y <= 0.0) return radii.y;
-            else return radii.z;
-        } else {
-            if (coord.y <= 0.0) return radii.x;
-            else return radii.w;
-        }
-    }
-
-    float sdRoundedRect(float2 coord, float2 halfSize, float radius) {
-        float2 cornerCoord = abs(coord) - (halfSize - float2(radius));
-        float outside = length(max(cornerCoord, 0.0)) - radius;
-        float inside = min(max(cornerCoord.x, cornerCoord.y), 0.0);
-        return outside + inside;
-    }
-
-    float2 gradSdRoundedRect(float2 coord, float2 halfSize, float radius) {
-        float2 cornerCoord = abs(coord) - (halfSize - float2(radius));
-        if (cornerCoord.x >= 0.0 || cornerCoord.y >= 0.0) {
-            return sign(coord) * normalize(max(cornerCoord, 0.0));
-        } else {
-            float gradX = step(cornerCoord.y, cornerCoord.x);
-            return sign(coord) * float2(gradX, 1.0 - gradX);
-        }
-    }
-
-    float circleMap(float x) {
-        return 1.0 - sqrt(max(0.0, 1.0 - x * x));
-    }
-
-    half4 main(float2 coord) {
-        if (size.x <= 0.0 || size.y <= 0.0 || refractionHeight <= 0.0) {
-            return content.eval(coord);
-        }
-        float2 halfSize = size * 0.5;
-        float2 centeredCoord = (coord + offset) - halfSize;
-        float radius = radiusAt(coord, cornerRadii);
-        
-        float sd = sdRoundedRect(centeredCoord, halfSize, radius);
-        if (-sd >= refractionHeight) {
-            return content.eval(coord);
-        }
-        sd = min(sd, 0.0);
-        
-        float ratio = clamp(1.0 - -sd / refractionHeight, 0.0, 1.0);
-        float d = circleMap(ratio) * refractionAmount;
-        float gradRadius = min(radius * 1.5, min(halfSize.x, halfSize.y));
-        float2 baseGrad = gradSdRoundedRect(centeredCoord, halfSize, gradRadius);
-        float lenGrad = length(baseGrad);
-        float2 grad = lenGrad > 0.001 ? normalize(baseGrad + depthEffect * normalize(centeredCoord)) : float2(0.0);
-        
-        float2 refractedCoord = coord + d * grad;
-        refractedCoord = clamp(refractedCoord, float2(0.0, 0.0), size);
-        return content.eval(refractedCoord);
-    }
-"""
-
 /**
  * Floating Liquid Glass Navigation Bar inspired by LastWave Native's liquid glass player card.
  * Features a continuous-curvature squircle dock capsule, specular top rim light, interactive radial touch glow,
@@ -285,13 +213,6 @@ fun FloatingLiquidGlassBottomBar(
             NavTabItem("Schedules", Icons.Rounded.Schedule, Icons.Outlined.Schedule),
             NavTabItem("Settings", Icons.Rounded.Settings, Icons.Outlined.Settings)
         )
-    }
-
-    // GPU-accelerated AGSL runtime shader for optical refraction distortion on the floating card (Android 13+ / 16)
-    val cardRefractionShader = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            runCatching { RuntimeShader(FLOATING_CARD_REFRACTION_SHADER) }.getOrNull()
-        } else null
     }
 
     // Textbook pill (capsule / stadium) shape for both the floating dock and the sliding indicator
@@ -345,6 +266,12 @@ fun FloatingLiquidGlassBottomBar(
         label = "pillH"
     )
 
+    // Dynamic hydrodynamic liquid deformation (squash & stretch during tab transition)
+    val deltaX = targetX - animX
+    val motionFactor = if (hasInitialized) (abs(deltaX) / 75f).coerceIn(0f, 1f) else 0f
+    val stretchX = motionFactor * 0.22f
+    val squashY = motionFactor * 0.08f
+
     // Interactive touch coordinates for LastWave radial glow effect
     var touchPosition by remember { mutableStateOf<Offset?>(null) }
     var isTouching by remember { mutableStateOf(false) }
@@ -359,19 +286,6 @@ fun FloatingLiquidGlassBottomBar(
                 ambientColor = Color(0x60000000),
                 spotColor = Color(0x90000000)
             )
-            // Optical lens refraction distortion for the entire floating card container
-            .graphicsLayer {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && cardRefractionShader != null && size.width > 0f && size.height > 0f) {
-                    val pillRadius = size.height / 2f
-                    cardRefractionShader.setFloatUniform("size", size.width, size.height)
-                    cardRefractionShader.setFloatUniform("offset", 0f, 0f)
-                    cardRefractionShader.setFloatUniform("cornerRadii", pillRadius, pillRadius, pillRadius, pillRadius)
-                    cardRefractionShader.setFloatUniform("refractionHeight", size.height * 0.45f)
-                    cardRefractionShader.setFloatUniform("refractionAmount", -18f)
-                    cardRefractionShader.setFloatUniform("depthEffect", 0.18f)
-                    renderEffect = RenderEffect.createRuntimeShaderEffect(cardRefractionShader, "content").asComposeRenderEffect()
-                }
-            }
             // Clip to clean pill capsule shape
             .clip(dockPillShape)
             // Translucent glass gradient body (LastWave-native recipe)
@@ -459,7 +373,7 @@ fun FloatingLiquidGlassBottomBar(
         Box(
             modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp)
         ) {
-            // The single translucent frosted liquid glass indicator pill
+            // The single translucent frosted liquid glass indicator pill with hydrodynamic & optical lens distortion
             if (hasInitialized && animW > 0f) {
                 Box(
                     modifier = Modifier
@@ -479,6 +393,11 @@ fun FloatingLiquidGlassBottomBar(
                             ambientColor = Color(0x25000000),
                             spotColor = Color(0x40000000)
                         )
+                        // Hydrodynamic squash & stretch during tab transition
+                        .graphicsLayer {
+                            scaleX = 1f + stretchX
+                            scaleY = 1f - squashY
+                        }
                         .clip(pillShape)
                         .background(
                             Brush.verticalGradient(
@@ -562,7 +481,13 @@ fun FloatingLiquidGlassBottomBar(
                             .padding(
                                 horizontal = if (isSelected) 16.dp else 13.dp,
                                 vertical = 9.dp
-                            ),
+                            )
+                            .graphicsLayer {
+                                if (isSelected) {
+                                    scaleX = 1.04f
+                                    scaleY = 1.04f
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
