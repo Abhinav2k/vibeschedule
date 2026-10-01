@@ -121,7 +121,7 @@ fun SchedulesScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 96.dp, top = 4.dp)
+                contentPadding = PaddingValues(bottom = 116.dp, top = 4.dp)
             ) {
                 items(schedules, key = { it.id }) { rule ->
                     ScheduleCard(

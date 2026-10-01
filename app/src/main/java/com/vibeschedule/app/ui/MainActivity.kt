@@ -8,13 +8,18 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -76,6 +81,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             VibeScheduleTheme {
@@ -181,44 +187,17 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     )
                 }
             )
-        },
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                FloatingLiquidGlassBottomBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = { newTab ->
-                        previousTab = selectedTab
-                        selectedTab = newTab
-                    }
-                )
-            }
-        },
-        floatingActionButton = {
-            if (selectedTab == 1) {
-                ExtendedFloatingActionButton(
-                    onClick = { editingRule = null; showDialog = true },
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("Add Schedule", style = MaterialTheme.typography.labelLarge) },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp)
-                )
-            }
         }
     ) { innerPadding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
+            // Screen content: fills the entire screen under the floating bar, padded only by topBar
             AnimatedContent(
                 targetState = selectedTab,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = innerPadding.calculateTopPadding()),
                 transitionSpec = {
                     val goingRight = targetState > previousTab
                     val enter = slideInHorizontally(
@@ -249,6 +228,39 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     2 -> SettingsScreen()
                 }
             }
+
+            // Floating Action Button for Schedules Tab (Tab 1), positioned cleanly above the floating bar
+            AnimatedVisibility(
+                visible = selectedTab == 1,
+                enter = fadeIn(animationSpec = tween(180)) + scaleIn(initialScale = 0.8f),
+                exit = fadeOut(animationSpec = tween(120)) + scaleOut(targetScale = 0.8f),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 20.dp, bottom = 86.dp)
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = { editingRule = null; showDialog = true },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text("Add Schedule", style = MaterialTheme.typography.labelLarge) },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
+                )
+            }
+
+            // Truly Floating Liquid Glass Bottom Navigation Bar overlay
+            FloatingLiquidGlassBottomBar(
+                selectedTab = selectedTab,
+                onTabSelected = { newTab ->
+                    previousTab = selectedTab
+                    selectedTab = newTab
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp)
+            )
         }
 
         if (showDialog) {

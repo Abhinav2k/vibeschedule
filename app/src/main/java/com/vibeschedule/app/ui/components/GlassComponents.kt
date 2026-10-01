@@ -37,6 +37,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -164,6 +166,7 @@ fun FloatingLiquidGlassBottomBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
     val items = listOf(
         NavTabItem("Home", Icons.Rounded.Home, Icons.Outlined.Home),
         NavTabItem("Schedules", Icons.Rounded.Schedule, Icons.Outlined.Schedule),
@@ -174,58 +177,104 @@ fun FloatingLiquidGlassBottomBar(
 
     Box(
         modifier = modifier
-            .shadow(elevation = 20.dp, shape = capsuleShape, spotColor = Color.Black, ambientColor = Color.Black)
+            // Multi-layered soft ambient drop shadow for authentic floating elevation
+            .shadow(
+                elevation = 16.dp,
+                shape = capsuleShape,
+                clip = false,
+                ambientColor = Color(0x66000000),
+                spotColor = Color(0x88000000)
+            )
+            // Clip to capsule shape
             .clip(capsuleShape)
-            .background(Color(0xDC121318))
+            // Translucent glass gradient body (30-45% opacity, letting background scroll beneath)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0x70222738), // Translucent frosted slate-indigo top
+                        Color(0x48131624), // Highly transparent middle for glass refraction
+                        Color(0x60181B2B)  // Translucent bottom
+                    )
+                )
+            )
+            // Specular rim stroke - catches top light and ambient bottom reflection
             .border(
                 BorderStroke(
-                    1.dp,
+                    1.2.dp,
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0x66FFFFFF),
-                            Color(0x22FFFFFF),
-                            Color(0x0EFFFFFF)
+                            Color(0x99FFFFFF), // Bright specular highlight on top curve
+                            Color(0x35FFFFFF), // Soft transition
+                            Color(0x10FFFFFF), // Subtle rim
+                            Color(0x28FFFFFF)  // Subtle bottom bounce highlight
                         )
                     )
                 ),
                 capsuleShape
             )
-            .padding(horizontal = 6.dp, vertical = 6.dp)
     ) {
+        // Internal specular glass sheen (top curvature light reflection)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(capsuleShape)
+                .background(
+                    Brush.verticalGradient(
+                        0.0f to Color(0x28FFFFFF),
+                        0.25f to Color(0x0CFFFFFF),
+                        0.6f to Color(0x00FFFFFF)
+                    )
+                )
+        )
+
+        // Tab items row
         Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items.forEachIndexed { index, item ->
                 val isSelected = selectedTab == index
-                val animatedBg by animateColorAsState(
-                    targetValue = if (isSelected) Color.White else Color.Transparent,
-                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
-                    label = "tabBg"
-                )
                 val animatedContentColor by animateColorAsState(
-                    targetValue = if (isSelected) Color(0xFF0A0A0F) else Color(0xFF9E9EA8),
-                    animationSpec = tween(durationMillis = 150),
+                    targetValue = if (isSelected) Color(0xFF0F111A) else Color(0xCCFFFFFF),
+                    animationSpec = tween(durationMillis = 180),
                     label = "tabContent"
                 )
 
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(animatedBg)
                         .then(
                             if (isSelected) {
-                                Modifier.border(BorderStroke(0.5.dp, Color(0x66FFFFFF)), CircleShape)
-                            } else {
                                 Modifier
+                                    .shadow(elevation = 4.dp, shape = CircleShape, spotColor = Color(0x40000000))
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color(0xFFFFFFFF),
+                                                Color(0xFFE2E7F0)
+                                            )
+                                        )
+                                    )
+                                    .border(BorderStroke(0.75.dp, Color(0x80FFFFFF)), CircleShape)
+                            } else {
+                                Modifier.background(Color.Transparent)
                             }
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = { onTabSelected(index) }
+                            onClick = {
+                                if (!isSelected) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                                onTabSelected(index)
+                            }
                         )
-                        .padding(horizontal = if (isSelected) 16.dp else 12.dp, vertical = 8.dp),
+                        .padding(
+                            horizontal = if (isSelected) 16.dp else 13.dp,
+                            vertical = 9.dp
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(

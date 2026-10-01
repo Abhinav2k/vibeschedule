@@ -6,7 +6,7 @@
 [![Android CI](https://img.shields.io/badge/Android-SDK%2026--34-green?logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-purple?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20M3-blue?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Release Version](https://img.shields.io/badge/version-v1.4.24-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
+[![Release Version](https://img.shields.io/badge/version-v1.4.25-indigo)](https://github.com/Abhinav2k/vibeschedule/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
 ---
@@ -23,7 +23,7 @@ The app schedules exact system transitions between **Normal**, **Vibrate**, and 
 
 Get the latest signed APK directly from GitHub Releases:
 
-- 📦 **[Download VibeSchedule v1.4.24 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
+- 📦 **[Download VibeSchedule v1.4.25 APK](https://github.com/Abhinav2k/vibeschedule/releases/latest)**
 
 ---
 
@@ -56,8 +56,9 @@ Get the latest signed APK directly from GitHub Releases:
 - Uses Android's `AlarmManager` with exact alarms (`setExactAndAllowWhileIdle`) for zero background battery drain.
 - Registered `BootReceiver` automatically recalculates and reschedules all active alarms upon device restart.
 
-### 💎 Obsidian Liquid Dark Glass Design
-- Modern dark obsidian aesthetic crafted with Jetpack Compose, featuring subtle translucent surfaces, responsive press animations, and high-contrast typography.
+### 💎 Floating Liquid Glass Navigation Bar
+- Modern translucent liquid glass capsule floating directly over scrolling content with specular rim lighting, internal light sheen, soft ambient elevation, and tactile frosted active tab pills.
+- Fully edge-to-edge transparent system navigation bar without opaque bars or docked slots.
 
 ---
 

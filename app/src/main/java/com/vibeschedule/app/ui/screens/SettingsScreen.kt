@@ -161,14 +161,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Origin Island & Dynamic Capsule",
+                            text = "Notification Settings",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Native support for OriginOS (vivo / iQOO) Origin Island (原子岛), ColorOS Fluid Cloud, and Android live status bar capsules.",
+                            text = "Manage system notification channels, vibration priority, and lock screen alerts in Android Settings.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -193,7 +193,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Configure Island Permissions in Settings")
+                    Text("Open System Notification Settings")
                 }
             }
         }
@@ -236,12 +236,15 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Version 1.4.18",
+                        text = "Version ${com.vibeschedule.app.BuildConfig.VERSION_NAME}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
+
+        // Clearance spacer for floating liquid glass navigation bar
+        Spacer(modifier = Modifier.height(108.dp))
     }
 }
