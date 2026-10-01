@@ -225,7 +225,7 @@ private const val LIQUID_GLASS_PILL_SHADER = """
 
     half4 main(float2 fragCoord) {
         if (uResolution.x <= 0.0 || uResolution.y <= 0.0) {
-            return half4(0.28, 0.28, 0.28, 0.28);
+            return half4(0.0, 0.0, 0.0, 0.0);
         }
 
         float2 halfSize = uResolution * 0.5;
@@ -238,46 +238,16 @@ private const val LIQUID_GLASS_PILL_SHADER = """
         }
 
         float innerDist = -dist;
-
-        // 1. Convex liquid meniscus curvature
-        float rimHeight = 12.0 + uMotion * 5.0;
-        float dNorm = clamp(innerDist / rimHeight, 0.0, 1.0);
-        float z = sqrt(1.0 - (1.0 - dNorm) * (1.0 - dNorm));
-
-        // 2. Normal gradient for optical refraction
-        float2 normGrad = gradCapsule(p, halfSize, radius);
-        float2 normal2D = normalize(normGrad * (1.0 - z * 0.5) + (p / halfSize) * 0.5);
-
-        // 3. Fresnel edge brilliance (Total Internal Reflection at meniscus)
-        float fresnel = pow(1.0 - z, 2.2);
-        float rimSpecular = smoothstep(0.0, 2.0, innerDist) * fresnel * 0.65;
-
-        // 4. Directional caustic lighting (top-angled key light)
-        float2 lightDir = normalize(float2(-0.25 - uMotionDir * 0.2, -0.95));
-        float lightDot = max(0.0, dot(normal2D, -lightDir));
-        float specularGlint = pow(lightDot, 14.0) * (0.60 + 0.30 * (1.0 - dNorm));
-
-        // 5. Internal secondary bounce caustic (bottom rim reflection)
-        float bottomBounce = max(0.0, dot(normal2D, float2(0.0, 1.0))) * pow(1.0 - dNorm, 2.2) * 0.32;
-
-        // 6. Fluid motion distortion (caustic light slosh during movement)
-        float slosh = uMotion * (0.15 + 0.10 * sin(fragCoord.x * 0.05));
-
-        // 7. Frosted optical glass translucency (tuned so blurred backdrop is vividly refracted)
-        float vertFade = fragCoord.y / uResolution.y;
-        float baseAlpha = mix(0.12, 0.05, vertFade) + slosh * 0.4;
-
-        // 8. Subtle optical dispersion (microscopic chromatic refraction at the edge)
-        float dispersion = pow(1.0 - dNorm, 2.0) * (0.12 + uMotion * 0.06);
-        float rC = 1.0 + dispersion * 0.45;
-        float gC = 1.0;
-        float bC = 1.0 + dispersion * 1.25;
-
-        float alpha = clamp(baseAlpha + rimSpecular + specularGlint + bottomBounce, 0.0, 0.72);
         float edgeAa = smoothstep(0.5, -0.5, dist);
-        float finalA = alpha * edgeAa;
 
-        return half4(rC * finalA, gC * finalA, bC * finalA, finalA);
+        // Clean uniform frosted glass tint without directional glints, hotspots, or asymmetric bounce
+        float dNorm = clamp(innerDist / 6.0, 0.0, 1.0);
+        float edgeSubtle = smoothstep(0.0, 1.0, 1.0 - dNorm) * 0.04;
+
+        // Perfectly balanced frosted translucency letting the Haze backdrop distortion shine through
+        float totalA = (0.09 + edgeSubtle) * edgeAa;
+
+        return half4(totalA, totalA, totalA, totalA);
     }
 """
 
@@ -594,10 +564,10 @@ fun FloatingLiquidGlassBottomBar(
                             height = with(density) { animH.toDp() }
                         )
                         .shadow(
-                            elevation = 6.dp,
+                            elevation = 2.dp,
                             shape = pillShape,
-                            ambientColor = Color(0x25000000),
-                            spotColor = Color(0x40000000)
+                            ambientColor = Color(0x15000000),
+                            spotColor = Color(0x20000000)
                         )
                         // Hydrodynamic squash & stretch and inertial fluid slosh during tab transition
                         .graphicsLayer {
@@ -606,7 +576,7 @@ fun FloatingLiquidGlassBottomBar(
                             translationX = fluidLagX
                         }
                         .clip(pillShape)
-                        // Dynamic backdrop blur and luminous magnifying lens over the active tab position
+                        // Dynamic backdrop blur and clean liquid glass lens over the active tab position
                         .then(
                             if (hazeState != null) {
                                 Modifier.hazeChild(
@@ -614,8 +584,8 @@ fun FloatingLiquidGlassBottomBar(
                                     shape = pillShape,
                                     style = HazeStyle(
                                         blurRadius = 14.dp,
-                                        tint = Color(0x22FFFFFF),
-                                        noiseFactor = 0.04f
+                                        tint = Color(0x14FFFFFF),
+                                        noiseFactor = 0f
                                     )
                                 )
                             } else Modifier
@@ -636,8 +606,8 @@ fun FloatingLiquidGlassBottomBar(
                                 drawRoundRect(
                                     brush = Brush.verticalGradient(
                                         listOf(
-                                            Color(0x30FFFFFF), // Luminous frosted white top
-                                            Color(0x12FFFFFF)  // Luminous translucent white bottom
+                                            Color(0x18FFFFFF),
+                                            Color(0x0EFFFFFF)
                                         )
                                     ),
                                     size = size,
@@ -647,35 +617,12 @@ fun FloatingLiquidGlassBottomBar(
                         }
                         .border(
                             BorderStroke(
-                                1.2.dp,
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color(0xE0FFFFFF), // Brilliant specular meniscus rim
-                                        Color(0x50FFFFFF)  // Soft lower rim
-                                    )
-                                )
+                                1.dp,
+                                Color(0x35FFFFFF)
                             ),
                             pillShape
                         )
-                ) {
-                    // Optical lens radial caustic sheen inside the sliding pill
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clip(pillShape)
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0x30FFFFFF), // Bright specular center
-                                        Color(0x10FFFFFF), // Soft translucent mid
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(animW * 0.5f + fluidLagX * 1.5f, animH * 0.25f),
-                                    radius = maxOf(animW, animH)
-                                )
-                            )
-                    )
-                }
+                )
             }
 
             // Tab items row positioned on top of the sliding indicator
