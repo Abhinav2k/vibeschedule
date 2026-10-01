@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -70,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.vibeschedule.app.model.ScheduleRule
@@ -204,18 +206,24 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     .padding(top = innerPadding.calculateTopPadding()),
                 transitionSpec = {
                     val goingRight = targetState > previousTab
+                    val slideSpring = spring<IntOffset>(
+                        dampingRatio = 0.78f,
+                        stiffness = 420f
+                    )
+                    val fadeSpec = tween<Float>(durationMillis = 200, easing = FastOutSlowInEasing)
+
                     val enter = slideInHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    ) { if (goingRight) it else -it } + fadeIn()
+                        animationSpec = slideSpring
+                    ) { fullWidth ->
+                        if (goingRight) (fullWidth * 0.20f).toInt() else (-fullWidth * 0.20f).toInt()
+                    } + fadeIn(animationSpec = fadeSpec)
+
                     val exit = slideOutHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    ) { if (goingRight) -it else it } + fadeOut()
+                        animationSpec = slideSpring
+                    ) { fullWidth ->
+                        if (goingRight) (-fullWidth * 0.20f).toInt() else (fullWidth * 0.20f).toInt()
+                    } + fadeOut(animationSpec = fadeSpec)
+
                     enter togetherWith exit
                 },
                 label = "tabTransition"

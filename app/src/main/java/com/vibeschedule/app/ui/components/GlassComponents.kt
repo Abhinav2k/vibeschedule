@@ -6,8 +6,10 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
@@ -219,42 +221,53 @@ fun FloatingLiquidGlassBottomBar(
     // Track layout bounds of each tab
     val tabBounds = remember { mutableStateMapOf<Int, TabBounds>() }
 
-    // Spatial spring physics from LastWave ExpressiveMotion
+    // Synchronized spring physics matching the screen parallax transition
     val navSpring = remember {
         spring<Float>(
-            dampingRatio = 0.76f,
-            stiffness = 380f
+            dampingRatio = 0.78f,
+            stiffness = 420f
         )
     }
 
-    // Animatable properties for the sliding liquid glass indicator pill
-    val indicatorOffsetX = remember { Animatable(0f) }
-    val indicatorOffsetY = remember { Animatable(0f) }
-    val indicatorWidth = remember { Animatable(0f) }
-    val indicatorHeight = remember { Animatable(0f) }
-    var isInitialized by remember { mutableStateOf(false) }
+    // Dynamic target bounds based on current tab selection
+    val currentBounds = tabBounds[selectedTab]
+    val targetX = currentBounds?.x ?: 0f
+    val targetY = currentBounds?.y ?: 0f
+    val targetW = currentBounds?.width ?: 0f
+    val targetH = currentBounds?.height ?: 0f
+
+    var hasInitialized by remember { mutableStateOf(false) }
+    LaunchedEffect(currentBounds) {
+        if (!hasInitialized && currentBounds != null && currentBounds.width > 0f) {
+            hasInitialized = true
+        }
+    }
+
+    // Smoothly animated properties driven on frame 0 in lockstep with tab changes
+    val animX by animateFloatAsState(
+        targetValue = targetX,
+        animationSpec = if (!hasInitialized) snap() else navSpring,
+        label = "pillX"
+    )
+    val animY by animateFloatAsState(
+        targetValue = targetY,
+        animationSpec = if (!hasInitialized) snap() else navSpring,
+        label = "pillY"
+    )
+    val animW by animateFloatAsState(
+        targetValue = targetW,
+        animationSpec = if (!hasInitialized) snap() else navSpring,
+        label = "pillW"
+    )
+    val animH by animateFloatAsState(
+        targetValue = targetH,
+        animationSpec = if (!hasInitialized) snap() else navSpring,
+        label = "pillH"
+    )
 
     // Interactive touch coordinates for LastWave radial glow effect
     var touchPosition by remember { mutableStateOf<Offset?>(null) }
     var isTouching by remember { mutableStateOf(false) }
-
-    // Smoothly slide the indicator pill when selectedTab changes or layout measures
-    LaunchedEffect(selectedTab, tabBounds[selectedTab]) {
-        val bounds = tabBounds[selectedTab] ?: return@LaunchedEffect
-        if (bounds.width <= 0f) return@LaunchedEffect
-        if (!isInitialized) {
-            indicatorOffsetX.snapTo(bounds.x)
-            indicatorOffsetY.snapTo(bounds.y)
-            indicatorWidth.snapTo(bounds.width)
-            indicatorHeight.snapTo(bounds.height)
-            isInitialized = true
-        } else {
-            launch { indicatorOffsetX.animateTo(bounds.x, navSpring) }
-            launch { indicatorOffsetY.animateTo(bounds.y, navSpring) }
-            launch { indicatorWidth.animateTo(bounds.width, navSpring) }
-            launch { indicatorHeight.animateTo(bounds.height, navSpring) }
-        }
-    }
 
     Box(
         modifier = modifier
@@ -278,22 +291,26 @@ fun FloatingLiquidGlassBottomBar(
                     )
                 )
             )
-            // Specular rim stroke - catches top light and ambient bottom reflection
+            // Specular rim stroke with prismatic diffraction (chromatic aberration)
             .border(
                 BorderStroke(
                     1.2.dp,
-                    Brush.verticalGradient(
+                    Brush.linearGradient(
                         colors = listOf(
-                            Color(0x85FFFFFF), // Bright specular highlight on top curve
-                            Color(0x28FFFFFF), // Soft transition
-                            Color(0x0CFFFFFF), // Subtle rim
-                            Color(0x24FFFFFF)  // Subtle bottom bounce highlight
+                            Color(0x99FFFFFF), // Crisp specular white reflection at top
+                            Color(0x8064D2FF), // Prismatic Cyan diffraction edge
+                            Color(0x65B388FF), // Prismatic Violet diffraction
+                            Color(0x70FF80AB), // Prismatic Magenta/Rose diffraction
+                            Color(0x50FFD54F), // Warm amber diffraction
+                            Color(0x20FFFFFF), // Subtle translucent mid
+                            Color(0x4564D2FF), // Cyan ambient reflection at bottom
+                            Color(0x35FFFFFF)  // Bottom bounce highlight
                         )
                     )
                 ),
                 dockPillShape
             )
-            // LastWave interactive drag/touch inspector for fluid radial light glow
+            // Interactive touch inspector for fluid radial light glow
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -312,21 +329,22 @@ fun FloatingLiquidGlassBottomBar(
                 }
             }
     ) {
-        // Internal specular glass sheen (top curvature light reflection from LastWave)
+        // Internal specular glass sheen with subtle chromatic dispersion
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(dockPillShape)
                 .background(
                     Brush.verticalGradient(
-                        0.0f to Color(0x25FFFFFF),
-                        0.28f to Color(0x0CFFFFFF),
-                        0.60f to Color.Transparent
+                        0.0f to Color(0x2EFFFFFF),
+                        0.15f to Color(0x1864D2FF), // Subtle cyan diffraction
+                        0.32f to Color(0x10FF80AB), // Subtle rose diffraction
+                        0.65f to Color.Transparent
                     )
                 )
         )
 
-        // LastWave interactive radial liquid glass glow on touch
+        // Radial liquid glass glow with chromatic dispersion on touch
         if (isTouching && touchPosition != null) {
             Box(
                 modifier = Modifier
@@ -336,7 +354,9 @@ fun FloatingLiquidGlassBottomBar(
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.16f),
+                                    Color(0x22FFFFFF),
+                                    Color(0x1664D2FF), // Cyan halo
+                                    Color(0x10E040FB), // Magenta halo
                                     Color.Transparent
                                 ),
                                 center = touchPosition!!,
@@ -352,19 +372,19 @@ fun FloatingLiquidGlassBottomBar(
         Box(
             modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp)
         ) {
-            // The single translucent frosted liquid glass indicator pill that slides horizontally to the active tab
-            if (isInitialized && indicatorWidth.value > 0f) {
+            // The single translucent frosted liquid glass indicator pill with prismatic diffraction
+            if (hasInitialized && animW > 0f) {
                 Box(
                     modifier = Modifier
                         .offset {
                             IntOffset(
-                                x = indicatorOffsetX.value.roundToInt(),
-                                y = indicatorOffsetY.value.roundToInt()
+                                x = animX.roundToInt(),
+                                y = animY.roundToInt()
                             )
                         }
                         .size(
-                            width = with(density) { indicatorWidth.value.toDp() },
-                            height = with(density) { indicatorHeight.value.toDp() }
+                            width = with(density) { animW.toDp() },
+                            height = with(density) { animH.toDp() }
                         )
                         .shadow(
                             elevation = 6.dp,
@@ -377,33 +397,43 @@ fun FloatingLiquidGlassBottomBar(
                             Brush.verticalGradient(
                                 listOf(
                                     Color(0x44FFFFFF), // Luminous frosted white top
-                                    Color(0x22FFFFFF)  // Luminous translucent white bottom
+                                    Color(0x20FFFFFF)  // Luminous translucent white bottom
                                 )
                             )
                         )
+                        // Multi-spectral diffraction border on the active indicator pill
                         .border(
                             BorderStroke(
                                 1.dp,
-                                Brush.verticalGradient(
+                                Brush.linearGradient(
                                     listOf(
-                                        Color(0x95FFFFFF), // Brilliant specular top rim
-                                        Color(0x35FFFFFF)  // Soft lower rim
+                                        Color(0xBBFFFFFF), // Brilliant white
+                                        Color(0x8864D2FF), // Cyan spectral fringe
+                                        Color(0x75E040FB), // Violet spectral fringe
+                                        Color(0x50FFD54F), // Amber fringe
+                                        Color(0x45FFFFFF)  // Soft white
                                     )
                                 )
                             ),
                             pillShape
                         )
                 ) {
-                    // Meniscus lens radial sheen inside the sliding pill
+                    // Prismatic iridescent diffraction sheen inside the sliding pill
                     Box(
                         modifier = Modifier
                             .matchParentSize()
                             .clip(pillShape)
                             .background(
-                                Brush.radialGradient(
-                                    colors = listOf(Color(0x2AFFFFFF), Color.Transparent),
-                                    center = Offset(indicatorWidth.value * 0.5f, 0f),
-                                    radius = maxOf(indicatorWidth.value, indicatorHeight.value)
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0x2A64D2FF), // Prismatic cyan
+                                        Color(0x38FFFFFF), // White specular core
+                                        Color(0x24FF80AB), // Prismatic rose
+                                        Color(0x18FFD54F), // Prismatic amber
+                                        Color(0x00FFFFFF)
+                                    ),
+                                    start = Offset(0f, 0f),
+                                    end = Offset(animW, animH)
                                 )
                             )
                     )
@@ -428,12 +458,14 @@ fun FloatingLiquidGlassBottomBar(
                             .onGloballyPositioned { coordinates ->
                                 val pos = coordinates.positionInParent()
                                 val size = coordinates.size
-                                tabBounds[index] = TabBounds(
-                                    x = pos.x,
-                                    y = pos.y,
-                                    width = size.width.toFloat(),
-                                    height = size.height.toFloat()
-                                )
+                                if (size.width > 0 && size.height > 0) {
+                                    tabBounds[index] = TabBounds(
+                                        x = pos.x,
+                                        y = pos.y,
+                                        width = size.width.toFloat(),
+                                        height = size.height.toFloat()
+                                    )
+                                }
                             }
                             .clip(pillShape)
                             .clickable(
@@ -466,18 +498,18 @@ fun FloatingLiquidGlassBottomBar(
                             // Only active tab expands its label! Inactive tabs are clean icons only
                             AnimatedVisibility(
                                 visible = isSelected,
-                                enter = fadeIn(animationSpec = tween(180, delayMillis = 40)) +
+                                enter = fadeIn(animationSpec = tween(180, delayMillis = 20)) +
                                         expandHorizontally(
                                             animationSpec = spring(
-                                                dampingRatio = 0.76f,
-                                                stiffness = 380f
+                                                dampingRatio = 0.78f,
+                                                stiffness = 420f
                                             )
                                         ),
-                                exit = fadeOut(animationSpec = tween(100)) +
+                                exit = fadeOut(animationSpec = tween(120)) +
                                         shrinkHorizontally(
                                             animationSpec = spring(
-                                                dampingRatio = 0.76f,
-                                                stiffness = 380f
+                                                dampingRatio = 0.78f,
+                                                stiffness = 420f
                                             )
                                         )
                             ) {
