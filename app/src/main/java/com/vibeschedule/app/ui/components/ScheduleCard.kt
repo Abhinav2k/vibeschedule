@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,10 +39,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
+import com.vibeschedule.app.ui.util.Haptics
 import java.util.Calendar
 
 @Composable
@@ -54,6 +56,7 @@ fun ScheduleCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val view = LocalView.current
     var menuExpanded by remember { mutableStateOf(false) }
 
     ElevatedCard(
@@ -79,7 +82,7 @@ fun ScheduleCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = rule.title,
+                        text = rule.title.ifBlank { "Scheduled Quiet" },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = if (rule.isEnabled)
@@ -105,7 +108,10 @@ fun ScheduleCard(
                 ) {
                     Switch(
                         checked = rule.isEnabled,
-                        onCheckedChange = onToggle,
+                        onCheckedChange = { newState ->
+                            Haptics.toggle(view, newState)
+                            onToggle(newState)
+                        },
                         thumbContent = if (rule.isEnabled) {
                             {
                                 Icon(
@@ -166,7 +172,6 @@ fun ScheduleCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // MD3 AssistChip for Sound Mode
                 AssistChip(
                     onClick = onEdit,
                     label = {

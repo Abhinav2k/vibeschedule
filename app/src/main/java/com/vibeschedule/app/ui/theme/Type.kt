@@ -8,110 +8,126 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.R
 
-val SFPro = FontFamily(
-    Font(R.font.sf_pro_regular, FontWeight.Normal),
-    Font(R.font.sf_pro_medium, FontWeight.Medium),
-    Font(R.font.sf_pro_semibold, FontWeight.SemiBold),
-    Font(R.font.sf_pro_bold, FontWeight.Bold)
+val BricolageGrotesque = FontFamily(
+    Font(R.font.bricolage_grotesque, FontWeight.Normal),
+    Font(R.font.bricolage_grotesque, FontWeight.Medium),
+    Font(R.font.bricolage_grotesque, FontWeight.SemiBold),
+    Font(R.font.bricolage_grotesque, FontWeight.Bold),
+    Font(R.font.bricolage_grotesque, FontWeight.ExtraBold)
 )
+
+val DMSans = FontFamily(
+    Font(R.font.dm_sans, FontWeight.Normal),
+    Font(R.font.dm_sans, FontWeight.Medium),
+    Font(R.font.dm_sans, FontWeight.SemiBold),
+    Font(R.font.dm_sans, FontWeight.Bold)
+)
+
+// Legacy alias so any existing references compile cleanly
+val SFPro = DMSans
 
 val Typography = Typography(
     displayLarge = TextStyle(
-        fontFamily = SFPro,
-        fontWeight = FontWeight.Bold,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp
+        fontFamily = BricolageGrotesque,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 52.sp,
+        lineHeight = 58.sp,
+        letterSpacing = (-1.0).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = BricolageGrotesque,
         fontWeight = FontWeight.Bold,
-        fontSize = 45.sp,
-        lineHeight = 52.sp
+        fontSize = 42.sp,
+        lineHeight = 48.sp,
+        letterSpacing = (-0.5).sp
     ),
     displaySmall = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = BricolageGrotesque,
         fontWeight = FontWeight.Bold,
-        fontSize = 36.sp,
-        lineHeight = 44.sp
+        fontSize = 34.sp,
+        lineHeight = 40.sp,
+        letterSpacing = (-0.25).sp
     ),
     headlineLarge = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = BricolageGrotesque,
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
+        fontSize = 30.sp,
+        lineHeight = 36.sp,
         letterSpacing = (-0.5).sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = SFPro,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = (-0.4).sp
+        fontFamily = BricolageGrotesque,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
+        letterSpacing = (-0.3).sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = BricolageGrotesque,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
         letterSpacing = (-0.2).sp
     ),
     titleLarge = TextStyle(
-        fontFamily = SFPro,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = DMSans,
+        fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
         lineHeight = 26.sp,
         letterSpacing = (-0.2).sp
     ),
     titleMedium = TextStyle(
-        fontFamily = SFPro,
-        fontWeight = FontWeight.Medium,
+        fontFamily = DMSans,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
+        lineHeight = 22.sp,
         letterSpacing = (-0.1).sp
     ),
     titleSmall = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = DMSans,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp
     ),
     bodyLarge = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = DMSans,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = (-0.2).sp
+        letterSpacing = (-0.1).sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = DMSans,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = (-0.1).sp
+        letterSpacing = (-0.05).sp
     ),
     bodySmall = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = DMSans,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp
     ),
     labelLarge = TextStyle(
-        fontFamily = SFPro,
-        fontWeight = FontWeight.Medium,
+        fontFamily = DMSans,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
-        lineHeight = 20.sp
+        lineHeight = 20.sp,
+        letterSpacing = 0.1.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = DMSans,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16.sp
+        lineHeight = 16.sp,
+        letterSpacing = 0.2.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = SFPro,
+        fontFamily = DMSans,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        lineHeight = 16.sp
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
     )
 )

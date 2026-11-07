@@ -35,14 +35,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.vibeschedule.app.ui.util.Haptics
 
 @Composable
 fun PermissionBanner(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var hasDndPermission by remember { mutableStateOf(true) }
@@ -123,6 +126,7 @@ fun PermissionBanner(modifier: Modifier = Modifier) {
 
                 Button(
                     onClick = {
+                        Haptics.click(view)
                         if (!hasDndPermission) {
                             val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
                             context.startActivity(intent)
