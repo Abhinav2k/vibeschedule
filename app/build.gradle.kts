@@ -19,12 +19,6 @@ android {
     }
 
     signingConfigs {
-        create("debugConfig") {
-            storeFile = file("${rootDir}/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
         create("release") {
             storeFile = file("release.keystore")
             storePassword = "vibeschedule123"
@@ -35,7 +29,7 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("debugConfig")
+            signingConfig = signingConfigs.getByName("release")
             manifestPlaceholders["appName"] = "VibeSchedule v${defaultConfig.versionName} (Debug)"
         }
         release {
