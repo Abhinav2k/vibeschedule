@@ -1,124 +1,130 @@
 package com.vibeschedule.app.ui.theme
 
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.vibeschedule.app.model.SoundMode
 
-// ─── Material Design 3 Tonal Palette (Obsidian / Indigo-Slate Dark) ─────────
-val md_theme_dark_primary                 = Color(0xFFBAC3FF)
-val md_theme_dark_onPrimary               = Color(0xFF08218A)
-val md_theme_dark_primaryContainer        = Color(0xFF283B9F)
-val md_theme_dark_onPrimaryContainer      = Color(0xFFDEE0FF)
-
-val md_theme_dark_secondary               = Color(0xFFC3C5DD)
-val md_theme_dark_onSecondary             = Color(0xFF2D3042)
-val md_theme_dark_secondaryContainer      = Color(0xFF434659)
-val md_theme_dark_onSecondaryContainer    = Color(0xFFDFE1F9)
-
-val md_theme_dark_tertiary                = Color(0xFFE5BAD8)
-val md_theme_dark_onTertiary              = Color(0xFF45263F)
-val md_theme_dark_tertiaryContainer       = Color(0xFF5D3C56)
-val md_theme_dark_onTertiaryContainer     = Color(0xFFFFD7F3)
-
-val md_theme_dark_error                   = Color(0xFFFFB4AB)
-val md_theme_dark_onError                 = Color(0xFF690005)
-val md_theme_dark_errorContainer          = Color(0xFF93000A)
-val md_theme_dark_onErrorContainer        = Color(0xFFFFDAD6)
-
-val md_theme_dark_background              = Color(0xFF111215)
-val md_theme_dark_onBackground            = Color(0xFFE3E2E6)
-val md_theme_dark_surface                 = Color(0xFF111215)
-val md_theme_dark_onSurface               = Color(0xFFE3E2E6)
-
-val md_theme_dark_surfaceVariant          = Color(0xFF44464F)
-val md_theme_dark_onSurfaceVariant        = Color(0xFFC6C5D0)
-val md_theme_dark_outline                 = Color(0xFF8F909A)
-val md_theme_dark_outlineVariant          = Color(0xFF44464F)
-
-val md_theme_dark_surfaceContainerLowest  = Color(0xFF0C0D10)
-val md_theme_dark_surfaceContainerLow     = Color(0xFF17181B)
-val md_theme_dark_surfaceContainer        = Color(0xFF1B1C20)
-val md_theme_dark_surfaceContainerHigh     = Color(0xFF25262B)
-val md_theme_dark_surfaceContainerHighest  = Color(0xFF303136)
-
-// ─── MD3 Light Palette ───────────────────────────────────────────────────────
-val md_theme_light_primary                = Color(0xFF4155BF)
-val md_theme_light_onPrimary              = Color(0xFFFFFFFF)
-val md_theme_light_primaryContainer       = Color(0xFFDEE0FF)
-val md_theme_light_onPrimaryContainer     = Color(0xFF001159)
-
-val md_theme_light_secondary              = Color(0xFF5B5D72)
-val md_theme_light_onSecondary            = Color(0xFFFFFFFF)
-val md_theme_light_secondaryContainer     = Color(0xFFDFE1F9)
-val md_theme_light_onSecondaryContainer   = Color(0xFF171B2C)
-
-val md_theme_light_tertiary               = Color(0xFF75546F)
-val md_theme_light_onTertiary             = Color(0xFFFFFFFF)
-val md_theme_light_tertiaryContainer      = Color(0xFFFFD7F3)
-val md_theme_light_onTertiaryContainer    = Color(0xFF2C1229)
-
-val md_theme_light_surface                = Color(0xFFFEF7FF)
-val md_theme_light_onSurface              = Color(0xFF1C1B1F)
-val md_theme_light_surfaceContainer       = Color(0xFFF3EDF7)
-val md_theme_light_outlineVariant         = Color(0xFFCAC4D0)
-
-// ─── Semantic Aliases & Brushes ─────────────────────────────────────────────
-val DeepDark            = md_theme_dark_background
-val SurfaceDark         = md_theme_dark_surfaceContainer
-val DeepDarkBg          = DeepDark
-val DarkNavyBg          = SurfaceDark
-
-val SurfaceGlass         = md_theme_dark_surfaceContainer
-val SurfaceGlassElevated = md_theme_dark_surfaceContainerHigh
-val SurfaceGlassActive   = md_theme_dark_primaryContainer
-
-val AccentWhite      = Color(0xFFFFFFFF)
-val AccentWhiteGlow  = Color(0x33BAC3FF)
-val AccentGray       = md_theme_dark_onSurfaceVariant
-val AccentDarkGray   = md_theme_dark_outline
-
-val AccentPurple     = md_theme_dark_primary
-val AccentPurpleGlow = AccentWhiteGlow
-val AccentTeal       = md_theme_dark_secondary
-val AccentTealGlow   = AccentWhiteGlow
-val AccentAmber      = md_theme_dark_tertiary
-val AccentRed        = md_theme_dark_error
-
-val TextPrimary   = md_theme_dark_onSurface
-val TextSecondary = md_theme_dark_onSurfaceVariant
-val TextTertiary  = md_theme_dark_outline
-
-val GlassBorderBrush = Brush.linearGradient(
-    listOf(
-        md_theme_dark_outlineVariant.copy(alpha = 0.5f),
-        md_theme_dark_outlineVariant.copy(alpha = 0.15f)
-    )
+@Immutable
+data class ModePalette(
+    val accent: Color,
+    val container: Color,
+    val onContainer: Color
 )
 
-val ActiveScheduleBorderBrush = Brush.linearGradient(
-    listOf(
-        md_theme_dark_primary.copy(alpha = 0.8f),
-        md_theme_dark_primaryContainer.copy(alpha = 0.4f)
-    )
+@Immutable
+data class VibeColors(
+    val isDark: Boolean,
+    val bg: Color,
+    val surfaceLowest: Color,
+    val surfaceLow: Color,
+    val surface: Color,
+    val surfaceHigh: Color,
+    val surfaceHighest: Color,
+    val onSurface: Color,
+    val onSurfaceVariant: Color,
+    val dim: Color,
+    val outline: Color,
+    val outlineVariant: Color,
+    val chromeFill: Color,
+    val onChromeFill: Color,
+    val onAccent: Color,
+    val ring: ModePalette,
+    val vibrate: ModePalette,
+    val silent: ModePalette,
+    val error: Color,
+    val onError: Color,
+    val errorContainer: Color,
+    val onErrorContainer: Color,
+    val scrim: Color,
+    val track: Color,
+    val hairline: Color
 )
 
-val LiquidGlassActiveBrush = Brush.linearGradient(
-    listOf(
-        md_theme_dark_surfaceContainerHigh,
-        md_theme_dark_surfaceContainer
-    )
+fun VibeColors.forMode(mode: SoundMode): ModePalette = when (mode) {
+    SoundMode.NORMAL -> ring
+    SoundMode.VIBRATE -> vibrate
+    SoundMode.SILENT -> silent
+}
+
+val DarkVibeColors = VibeColors(
+    isDark = true,
+    bg = Color(0xFF0D1020),
+    surfaceLowest = Color(0xFF090B17),
+    surfaceLow = Color(0xFF121629),
+    surface = Color(0xFF171C31),
+    surfaceHigh = Color(0xFF1E243C),
+    surfaceHighest = Color(0xFF272E49),
+    onSurface = Color(0xFFE8EAFA),
+    onSurfaceVariant = Color(0xFFA9B0CE),
+    dim = Color(0xFF7C84A8),
+    outline = Color(0xFF6E78A0),
+    outlineVariant = Color(0xFF2A314D),
+    chromeFill = Color(0xFFECEEFB),
+    onChromeFill = Color(0xFF0D1020),
+    onAccent = Color(0xFF0D1020),
+    ring = ModePalette(
+        accent = Color(0xFFFFC56B),
+        container = Color(0xFF5B3C06),
+        onContainer = Color(0xFFFFE6BF)
+    ),
+    vibrate = ModePalette(
+        accent = Color(0xFFAEB8FF),
+        container = Color(0xFF2B3380),
+        onContainer = Color(0xFFE1E4FF)
+    ),
+    silent = ModePalette(
+        accent = Color(0xFF5ED6CB),
+        container = Color(0xFF0E4B49),
+        onContainer = Color(0xFFC4F5F0)
+    ),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF0D1020),
+    errorContainer = Color(0xFF6E1C1C),
+    onErrorContainer = Color(0xFFFFDAD6),
+    scrim = Color(0x8C000000),
+    track = Color(0x1AE8EAFA),
+    hairline = Color(0xFF2A314D)
 )
 
-val BackgroundMeshBrush = Brush.verticalGradient(
-    listOf(
-        Color(0xFF15161A),
-        Color(0xFF0F1013),
-        Color(0xFF0A0B0D)
-    )
+val LightVibeColors = VibeColors(
+    isDark = false,
+    bg = Color(0xFFF3F4FA),
+    surfaceLowest = Color(0xFFFFFFFF),
+    surfaceLow = Color(0xFFF8F9FD),
+    surface = Color(0xFFEFF1F9),
+    surfaceHigh = Color(0xFFE7EAF5),
+    surfaceHighest = Color(0xFFDFE3F1),
+    onSurface = Color(0xFF141729),
+    onSurfaceVariant = Color(0xFF4A5070),
+    dim = Color(0xFF5F6685),
+    outline = Color(0xFF7A8099),
+    outlineVariant = Color(0xFFD3D7E8),
+    chromeFill = Color(0xFF141729),
+    onChromeFill = Color(0xFFF3F4FA),
+    onAccent = Color(0xFFFFFFFF),
+    ring = ModePalette(
+        accent = Color(0xFF8A5300),
+        container = Color(0xFFFFE3B5),
+        onContainer = Color(0xFF3A2300)
+    ),
+    vibrate = ModePalette(
+        accent = Color(0xFF4350C9),
+        container = Color(0xFFDFE2FF),
+        onContainer = Color(0xFF0E1672)
+    ),
+    silent = ModePalette(
+        accent = Color(0xFF0A766F),
+        container = Color(0xFFC9F3EE),
+        onContainer = Color(0xFF00302D)
+    ),
+    error = Color(0xFFB3261E),
+    onError = Color(0xFFF3F4FA),
+    errorContainer = Color(0xFFF9DEDC),
+    onErrorContainer = Color(0xFF410E0B),
+    scrim = Color(0x66000000),
+    track = Color(0x14141729),
+    hairline = Color(0xFFD3D7E8)
 )
 
-val Purple80      = md_theme_dark_primary
-val PurpleGrey80  = md_theme_dark_secondary
-val Pink80        = md_theme_dark_tertiary
-val Purple40      = md_theme_light_primary
-val PurpleGrey40  = md_theme_light_secondary
-val Pink40        = md_theme_light_tertiary
+val LocalVibeColors = staticCompositionLocalOf { DarkVibeColors }

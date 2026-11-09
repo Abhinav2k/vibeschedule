@@ -17,13 +17,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,12 +37,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.vibeschedule.app.data.ScheduleRepository
 import com.vibeschedule.app.ui.theme.VibeScheduleTheme
-import com.vibeschedule.app.ui.util.Haptics
 import com.vibeschedule.app.util.QuickMuteHelper
 
 class QuickTimerPopupActivity : ComponentActivity() {
@@ -68,7 +72,6 @@ private fun QuickTimerPopupContent(
     onSelectPreset: (minutes: Int, label: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val view = LocalView.current
     val presets = listOf(
         15 to "15m",
         30 to "30m",
@@ -85,10 +88,7 @@ private fun QuickTimerPopupContent(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = {
-                    Haptics.click(view)
-                    onDismiss()
-                }
+                onClick = onDismiss
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -110,6 +110,7 @@ private fun QuickTimerPopupContent(
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -134,10 +135,7 @@ private fun QuickTimerPopupContent(
                     }
 
                     IconButton(
-                        onClick = {
-                            Haptics.click(view)
-                            onDismiss()
-                        },
+                        onClick = onDismiss,
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
@@ -159,6 +157,7 @@ private fun QuickTimerPopupContent(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
+                // Presets Grid (2 rows of 3)
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     val rows = presets.chunked(3)
                     rows.forEach { rowItems ->
@@ -168,10 +167,7 @@ private fun QuickTimerPopupContent(
                         ) {
                             rowItems.forEach { (min, label) ->
                                 Surface(
-                                    onClick = {
-                                        Haptics.confirm(view)
-                                        onSelectPreset(min, label)
-                                    },
+                                    onClick = { onSelectPreset(min, label) },
                                     shape = RoundedCornerShape(14.dp),
                                     color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                     modifier = Modifier

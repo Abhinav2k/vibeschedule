@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -49,21 +50,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.ui.MainViewModel
 import com.vibeschedule.app.ui.QuickMuteConflict
 import com.vibeschedule.app.ui.components.PermissionBanner
 import com.vibeschedule.app.ui.components.ScheduleCard
-import com.vibeschedule.app.ui.theme.BricolageGrotesque
-import com.vibeschedule.app.ui.util.Haptics
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+
+fun Modifier.bounceClickSched(onClick: () -> Unit): Modifier {
+    return this.clickable(onClick = onClick)
+}
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -77,41 +79,13 @@ fun SchedulesScreen(
     val quickMuteUntilMillis by viewModel.quickMuteUntilMillis.collectAsState()
     val quickMuteRemainingSec by viewModel.quickMuteRemainingSeconds.collectAsState()
 
-    SchedulesContent(
-        schedules = schedules,
-        conflictInfo = conflictInfo,
-        activeRemainingSeconds = if (quickMuteUntilMillis != null) quickMuteRemainingSec else null,
-        onQuickMute = { minutes -> viewModel.requestQuickMute(minutes) },
-        onCancelQuickMute = { viewModel.cancelQuickMute() },
-        onKeepConflict = { viewModel.dismissQuickMuteConflict() },
-        onOverrideConflict = { viewModel.confirmQuickMuteOverride() },
-        onToggleSchedule = { id, enabled -> viewModel.toggleSchedule(id, enabled) },
-        onEditRule = onEditRule,
-        onDeleteSchedule = { id -> viewModel.deleteSchedule(id) },
-        modifier = modifier
-    )
-}
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Composable
-fun SchedulesContent(
-    schedules: List<ScheduleRule>,
-    conflictInfo: QuickMuteConflict?,
-    activeRemainingSeconds: Int?,
-    onQuickMute: (Int) -> Unit,
-    onCancelQuickMute: () -> Unit,
-    onKeepConflict: () -> Unit,
-    onOverrideConflict: () -> Unit,
-    onToggleSchedule: (String, Boolean) -> Unit,
-    onEditRule: (ScheduleRule) -> Unit,
-    onDeleteSchedule: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
     Column(
         modifier = modifier.fillMaxSize()
     ) {
+        // Permission Banner (if needed)
         PermissionBanner()
 
+        // Conflict Info Card
         AnimatedVisibility(
             visible = conflictInfo != null,
             enter = fadeIn() + expandVertically(),
@@ -119,37 +93,47 @@ fun SchedulesContent(
         ) {
             if (conflictInfo != null) {
                 QuickMuteConflictCard(
-                    conflict = conflictInfo,
-                    onKeep = onKeepConflict,
-                    onOverride = onOverrideConflict,
+                    conflict = conflictInfo!!,
+                    onKeep = { viewModel.dismissQuickMuteConflict() },
+                    onOverride = { viewModel.confirmQuickMuteOverride() },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
             }
         }
 
+        // MD3 Quick Mute Section
         QuickMuteSection(
-            activeRemainingSeconds = activeRemainingSeconds,
-            onQuickMute = onQuickMute,
-            onCancelQuickMute = onCancelQuickMute,
+            activeRemainingSeconds = if (quickMuteUntilMillis != null) quickMuteRemainingSec else null,
+            onQuickMute = { minutes ->
+                viewModel.requestQuickMute(minutes)
+            },
+            onCancelQuickMute = {
+                viewModel.cancelQuickMute()
+            },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
         )
 
         Spacer(modifier = Modifier.height(6.dp))
 
+        // Schedule List
         if (schedules.isEmpty()) {
             EmptySchedulesPlaceholder()
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 130.dp, top = 4.dp)
+                contentPadding = PaddingValues(bottom = 140.dp, top = 4.dp)
             ) {
                 items(schedules, key = { it.id }) { rule ->
                     ScheduleCard(
                         rule = rule,
                         modifier = Modifier.animateItemPlacement(),
-                        onToggle = { isEnabled -> onToggleSchedule(rule.id, isEnabled) },
+                        onToggle = { isEnabled ->
+                            viewModel.toggleSchedule(rule.id, isEnabled)
+                        },
                         onEdit = { onEditRule(rule) },
-                        onDelete = { onDeleteSchedule(rule.id) }
+                        onDelete = {
+                            viewModel.deleteSchedule(rule.id)
+                        }
                     )
                 }
             }
@@ -164,7 +148,6 @@ private fun QuickMuteConflictCard(
     onOverride: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val view = LocalView.current
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -204,20 +187,14 @@ private fun QuickMuteConflictCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(
-                        onClick = {
-                            Haptics.click(view)
-                            onKeep()
-                        },
+                        onClick = onKeep,
                         shape = CircleShape
                     ) {
                         Text("Keep Current", style = MaterialTheme.typography.labelMedium)
                     }
 
                     Button(
-                        onClick = {
-                            Haptics.confirm(view)
-                            onOverride()
-                        },
+                        onClick = onOverride,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             contentColor = MaterialTheme.colorScheme.onTertiary
@@ -243,7 +220,6 @@ private fun QuickMuteSection(
     onCancelQuickMute: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val view = LocalView.current
     var showCustomDialog by remember { mutableStateOf(false) }
 
     if (showCustomDialog) {
@@ -251,7 +227,6 @@ private fun QuickMuteSection(
             onDismiss = { showCustomDialog = false },
             onConfirm = { minutes ->
                 showCustomDialog = false
-                Haptics.confirm(view)
                 onQuickMute(minutes)
             }
         )
@@ -308,10 +283,7 @@ private fun QuickMuteSection(
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .clickable {
-                                    Haptics.click(view)
-                                    onCancelQuickMute()
-                                }
+                                .clickable { onCancelQuickMute() }
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -320,21 +292,19 @@ private fun QuickMuteSection(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Shorter buttons row with Presets and Custom button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 listOf(15 to "15m", 30 to "30m", 60 to "1h", 120 to "2h").forEach { (min, label) ->
                     Surface(
-                        onClick = {
-                            Haptics.click(view)
-                            onQuickMute(min)
-                        },
+                        onClick = { onQuickMute(min) },
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         modifier = Modifier
                             .weight(1f)
-                            .height(32.dp)
+                            .height(30.dp)
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -350,16 +320,14 @@ private fun QuickMuteSection(
                     }
                 }
 
+                // Shorter Custom Timer Button
                 Surface(
-                    onClick = {
-                        Haptics.click(view)
-                        showCustomDialog = true
-                    },
+                    onClick = { showCustomDialog = true },
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
                     modifier = Modifier
-                        .weight(1.1f)
-                        .height(32.dp)
+                        .weight(1.05f)
+                        .height(30.dp)
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -383,7 +351,6 @@ private fun CustomQuickMuteDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit
 ) {
-    val view = LocalView.current
     var minutes by remember { mutableIntStateOf(45) }
     var textValue by remember { mutableStateOf("45") }
 
@@ -427,6 +394,7 @@ private fun CustomQuickMuteDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                // Large duration display & Steppers
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -442,7 +410,6 @@ private fun CustomQuickMuteDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Surface(
                                 onClick = {
-                                    Haptics.click(view)
                                     val next = (minutes - 15).coerceIn(1, 1440)
                                     minutes = next
                                     textValue = next.toString()
@@ -460,7 +427,6 @@ private fun CustomQuickMuteDialog(
                             }
                             Surface(
                                 onClick = {
-                                    Haptics.click(view)
                                     val next = (minutes - 5).coerceIn(1, 1440)
                                     minutes = next
                                     textValue = next.toString()
@@ -482,7 +448,6 @@ private fun CustomQuickMuteDialog(
                             Text(
                                 text = durationStr,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontFamily = BricolageGrotesque,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -496,7 +461,6 @@ private fun CustomQuickMuteDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Surface(
                                 onClick = {
-                                    Haptics.click(view)
                                     val next = (minutes + 5).coerceIn(1, 1440)
                                     minutes = next
                                     textValue = next.toString()
@@ -514,7 +478,6 @@ private fun CustomQuickMuteDialog(
                             }
                             Surface(
                                 onClick = {
-                                    Haptics.click(view)
                                     val next = (minutes + 15).coerceIn(1, 1440)
                                     minutes = next
                                     textValue = next.toString()
@@ -534,6 +497,7 @@ private fun CustomQuickMuteDialog(
                     }
                 }
 
+                // Preset Chips Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -541,7 +505,6 @@ private fun CustomQuickMuteDialog(
                     listOf(5 to "5m", 10 to "10m", 20 to "20m", 45 to "45m", 90 to "1.5h").forEach { (presetMin, label) ->
                         Surface(
                             onClick = {
-                                Haptics.click(view)
                                 minutes = presetMin
                                 textValue = presetMin.toString()
                             },
@@ -563,6 +526,7 @@ private fun CustomQuickMuteDialog(
                     }
                 }
 
+                // Manual Numeric Input
                 OutlinedTextField(
                     value = textValue,
                     onValueChange = { input ->

@@ -1,10 +1,14 @@
 package com.vibeschedule.app.ui.components
 
-import android.graphics.RuntimeShader
-import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -21,6 +25,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.offset
@@ -28,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Schedule
@@ -48,32 +55,139 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vibeschedule.app.ui.util.Haptics
+import com.vibeschedule.app.ui.theme.GlassBorderBrush
+import com.vibeschedule.app.ui.theme.SurfaceGlass
+import com.vibeschedule.app.ui.theme.TextPrimary
+import com.vibeschedule.app.ui.theme.TextSecondary
+import android.graphics.RuntimeShader
+import android.os.Build
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.graphicsLayer
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeChild
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
+import kotlin.math.sin
+
+@Composable
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(24.dp),
+    borderBrush: Brush = GlassBorderBrush,
+    backgroundColor: Color = SurfaceGlass,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(backgroundColor)
+            .border(BorderStroke(0.75.dp, borderBrush), shape)
+    ) {
+        Column(modifier = Modifier.padding(20.dp), content = content)
+    }
+}
+
+@Composable
+fun LiquidTabSwitcher(
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    tabs: List<String>,
+    modifier: Modifier = Modifier
+) {
+    val pillShape = CircleShape
+
+    Box(
+        modifier = modifier
+            .clip(pillShape)
+            .background(Color(0x12FFFFFF))
+            .border(BorderStroke(0.75.dp, Color(0x1CFFFFFF)), pillShape)
+            .padding(3.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            tabs.forEachIndexed { index, title ->
+                val isSelected = selectedTab == index
+                val animatedBg by animateColorAsState(
+                    targetValue = if (isSelected) Color(0x30FFFFFF) else Color.Transparent,
+                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+                    label = "tabBg"
+                )
+                val animatedTextColor by animateColorAsState(
+                    targetValue = if (isSelected) TextPrimary else TextSecondary,
+                    animationSpec = tween(durationMillis = 150),
+                    label = "tabText"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clip(pillShape)
+                        .background(animatedBg)
+                        .then(if (isSelected) Modifier.border(BorderStroke(0.5.dp, Color(0x35FFFFFF)), pillShape) else Modifier)
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = { onTabSelected(index) })
+                        .padding(horizontal = 20.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 13.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        letterSpacing = (-0.1).sp,
+                        color = animatedTextColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GlowingIndicator(isActive: Boolean, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.85f, targetValue = 1.3f,
+        animationSpec = infiniteRepeatable(animation = tween(1200, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
+        label = "scale"
+    )
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f, targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(animation = tween(1200, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
+        label = "alpha"
+    )
+
+    val color = if (isActive) Color.White else Color(0x55FFFFFF)
+
+    Box(modifier = modifier.size(14.dp), contentAlignment = Alignment.Center) {
+        if (isActive) {
+            Box(
+                modifier = Modifier.size(14.dp).scale(scale).clip(CircleShape).background(color.copy(alpha = alpha * 0.35f))
+            )
+        }
+        Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(color))
+    }
+}
 
 data class TabBounds(
     val x: Float,
@@ -100,6 +214,15 @@ private const val LIQUID_GLASS_PILL_SHADER = """
         return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - r;
     }
 
+    float2 gradCapsule(float2 p, float2 halfSize, float r) {
+        float2 d = abs(p) - (halfSize - float2(r));
+        if (d.x > 0.0 || d.y > 0.0) {
+            return sign(p) * normalize(max(d, 0.0));
+        }
+        float gx = step(d.y, d.x);
+        return sign(p) * float2(gx, 1.0 - gx);
+    }
+
     half4 main(float2 fragCoord) {
         if (uResolution.x <= 0.0 || uResolution.y <= 0.0) {
             return half4(0.0, 0.0, 0.0, 0.0);
@@ -116,9 +239,13 @@ private const val LIQUID_GLASS_PILL_SHADER = """
 
         float innerDist = -dist;
         float edgeAa = smoothstep(0.5, -0.5, dist);
+
+        // Clean uniform frosted glass tint without directional glints, hotspots, or asymmetric bounce
         float dNorm = clamp(innerDist / 6.0, 0.0, 1.0);
         float edgeSubtle = smoothstep(0.0, 1.0, 1.0 - dNorm) * 0.04;
-        float totalA = (0.10 + edgeSubtle) * edgeAa;
+
+        // Perfectly balanced frosted translucency letting the Haze backdrop distortion shine through
+        float totalA = (0.09 + edgeSubtle) * edgeAa;
 
         return half4(totalA, totalA, totalA, totalA);
     }
@@ -159,24 +286,31 @@ private const val LIQUID_GLASS_DOCK_SHADER = """
         float dNorm = clamp(innerDist / 20.0, 0.0, 1.0);
         float z = sqrt(1.0 - (1.0 - dNorm) * (1.0 - dNorm));
 
+        // Edge normal & rim lighting
         float2 normGrad = gradCapsule(p, halfSize, radius);
         float2 normal2D = normalize(normGrad * (1.0 - z * 0.4) + (p / halfSize) * 0.4);
 
+        // Fresnel rim reflection
         float fresnel = pow(1.0 - z, 2.5);
         float rim = smoothstep(0.0, 3.0, innerDist) * fresnel * 0.45;
 
+        // Key light specular from top
         float2 lightDir = normalize(float2(-0.2, -0.98));
         float spec = pow(max(0.0, dot(normal2D, -lightDir)), 16.0) * 0.40;
+
+        // Bottom bounce
         float bottom = max(0.0, dot(normal2D, float2(0.0, 1.0))) * pow(1.0 - dNorm, 2.0) * 0.22;
 
+        // Touch interaction glow
         float touchGlow = 0.0;
         if (uTouchActive > 0.01) {
             float tDist = length(fragCoord - uTouchPos);
             touchGlow = exp(-tDist * tDist / 4500.0) * uTouchActive * 0.35;
         }
 
+        // Translucent liquid obsidian glass base (tuned to let Haze backdrop blur shine through)
         float vert = fragCoord.y / uResolution.y;
-        float baseAlpha = mix(0.14, 0.08, vert);
+        float baseAlpha = mix(0.12, 0.06, vert);
 
         float rCol = mix(0.10, 0.06, vert) + rim * 0.65 + spec + touchGlow;
         float gCol = mix(0.12, 0.08, vert) + rim * 0.65 + spec + touchGlow;
@@ -189,14 +323,20 @@ private const val LIQUID_GLASS_DOCK_SHADER = """
     }
 """
 
+/**
+ * Floating Liquid Glass Navigation Bar inspired by LastWave Native's liquid glass player card.
+ * Features real-time hardware backdrop blur & optical distortion of whatever is behind it using Haze,
+ * continuous-curvature squircle dock capsule, specular top rim light, interactive radial touch glow,
+ * and a single translucent frosted liquid glass indicator pill that smoothly slides with spatial spring physics across tabs.
+ */
 @Composable
-fun VibeDock(
+fun FloatingLiquidGlassBottomBar(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null
 ) {
-    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
 
     val items = remember {
@@ -207,6 +347,7 @@ fun VibeDock(
         )
     }
 
+    // GPU-accelerated AGSL runtime shaders for optical liquid glass refraction & distortion (Android 13+)
     val pillShader = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             runCatching { RuntimeShader(LIQUID_GLASS_PILL_SHADER) }.getOrNull()
@@ -219,11 +360,14 @@ fun VibeDock(
         } else null
     }
 
+    // Textbook pill (capsule / stadium) shape for both the floating dock and the sliding indicator
     val dockPillShape = CircleShape
     val pillShape = CircleShape
 
+    // Track layout bounds of each tab
     val tabBounds = remember { mutableStateMapOf<Int, TabBounds>() }
 
+    // Synchronized spring physics matching the screen parallax transition
     val navSpring = remember {
         spring<Float>(
             dampingRatio = 0.78f,
@@ -231,6 +375,7 @@ fun VibeDock(
         )
     }
 
+    // Dynamic target bounds based on current tab selection
     val currentBounds = tabBounds[selectedTab]
     val targetX = currentBounds?.x ?: 0f
     val targetY = currentBounds?.y ?: 0f
@@ -244,6 +389,7 @@ fun VibeDock(
         }
     }
 
+    // Smoothly animated properties driven on frame 0 in lockstep with tab changes
     val animX by animateFloatAsState(
         targetValue = targetX,
         animationSpec = if (!hasInitialized) snap() else navSpring,
@@ -265,26 +411,31 @@ fun VibeDock(
         label = "pillH"
     )
 
+    // Dynamic hydrodynamic liquid deformation (squash & stretch & slosh during tab transition)
     val deltaX = targetX - animX
     val motionFactor = if (hasInitialized) (abs(deltaX) / 75f).coerceIn(0f, 1.2f) else 0f
     val motionDir = if (hasInitialized && abs(deltaX) > 0.5f) sign(deltaX) else 0f
-    val stretchX = motionFactor * 0.25f
-    val squashY = motionFactor * 0.10f
-    val fluidLagX = -motionDir * motionFactor * 3.5f
+    val stretchX = motionFactor * 0.28f
+    val squashY = motionFactor * 0.12f
+    val fluidLagX = -motionDir * motionFactor * 4.0f
 
+    // Interactive touch coordinates for LastWave radial glow effect
     var touchPosition by remember { mutableStateOf<Offset?>(null) }
     var isTouching by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
+            // Multi-layered soft ambient drop shadow for authentic floating elevation
             .shadow(
-                elevation = 16.dp,
+                elevation = 18.dp,
                 shape = dockPillShape,
                 clip = false,
                 ambientColor = Color(0x60000000),
                 spotColor = Color(0x90000000)
             )
+            // Clip to clean pill capsule shape
             .clip(dockPillShape)
+            // Real-time backdrop blur & optical distortion of scrolling content underneath
             .then(
                 if (hazeState != null) {
                     Modifier.hazeChild(
@@ -292,12 +443,13 @@ fun VibeDock(
                         shape = dockPillShape,
                         style = HazeStyle(
                             blurRadius = 24.dp,
-                            tint = Color(0x35101322),
-                            noiseFactor = 0.06f
+                            tint = Color(0x30101422),
+                            noiseFactor = 0.08f
                         )
                     )
                 } else Modifier
             )
+            // Translucent glass body with AGSL SDF optical refraction on API 33+ or multi-stop gradient fallback
             .drawBehind {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && dockShader != null && size.width > 0f && size.height > 0f) {
                     dockShader.setFloatUniform("uResolution", size.width, size.height)
@@ -312,9 +464,9 @@ fun VibeDock(
                     drawRoundRect(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0x401C2030),
-                                Color(0x20111422),
-                                Color(0x35171A2A)
+                                Color(0x351C2030), // Translucent frosted slate-indigo top
+                                Color(0x15111422), // Highly transparent middle for glass refraction
+                                Color(0x28171A2A)  // Translucent bottom
                             )
                         ),
                         size = size,
@@ -322,20 +474,22 @@ fun VibeDock(
                     )
                 }
             }
+            // Specular rim stroke with authentic glass reflections
             .border(
                 BorderStroke(
                     1.2.dp,
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0x90FFFFFF),
-                            Color(0x30FFFFFF),
-                            Color(0x18FFFFFF),
-                            Color(0x38FFFFFF)
+                            Color(0x99FFFFFF), // Crisp specular white reflection at top
+                            Color(0x35FFFFFF), // Translucent side reflection
+                            Color(0x18FFFFFF), // Deep lower refraction
+                            Color(0x40FFFFFF)  // Bottom bounce highlight
                         )
                     )
                 ),
                 dockPillShape
             )
+            // Interactive touch inspector for fluid radial light glow
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -354,19 +508,21 @@ fun VibeDock(
                 }
             }
     ) {
+        // Internal specular glass sheen
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(dockPillShape)
                 .background(
                     Brush.verticalGradient(
-                        0.0f to Color(0x28FFFFFF),
-                        0.25f to Color(0x10FFFFFF),
-                        0.65f to Color.Transparent
+                        0.0f to Color(0x2EFFFFFF),
+                        0.22f to Color(0x12FFFFFF),
+                        0.60f to Color.Transparent
                     )
                 )
         )
 
+        // Radial liquid glass glow on touch
         if (isTouching && touchPosition != null) {
             Box(
                 modifier = Modifier
@@ -376,8 +532,8 @@ fun VibeDock(
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    Color(0x24FFFFFF),
-                                    Color(0x0CFFFFFF),
+                                    Color(0x28FFFFFF),
+                                    Color(0x10FFFFFF),
                                     Color.Transparent
                                 ),
                                 center = touchPosition!!,
@@ -389,9 +545,11 @@ fun VibeDock(
             )
         }
 
+        // Inner track containing the sliding liquid glass pill indicator and tab items
         Box(
             modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp)
         ) {
+            // The single translucent frosted liquid glass indicator pill with hydrodynamic & optical lens distortion
             if (hasInitialized && animW > 0f) {
                 Box(
                     modifier = Modifier
@@ -411,12 +569,14 @@ fun VibeDock(
                             ambientColor = Color(0x15000000),
                             spotColor = Color(0x20000000)
                         )
+                        // Hydrodynamic squash & stretch and inertial fluid slosh during tab transition
                         .graphicsLayer {
                             scaleX = 1f + stretchX
                             scaleY = 1f - squashY
                             translationX = fluidLagX
                         }
                         .clip(pillShape)
+                        // Dynamic backdrop blur and clean liquid glass lens over the active tab position
                         .then(
                             if (hazeState != null) {
                                 Modifier.hazeChild(
@@ -424,7 +584,7 @@ fun VibeDock(
                                     shape = pillShape,
                                     style = HazeStyle(
                                         blurRadius = 14.dp,
-                                        tint = Color(0x15FFFFFF),
+                                        tint = Color(0x14FFFFFF),
                                         noiseFactor = 0f
                                     )
                                 )
@@ -446,7 +606,7 @@ fun VibeDock(
                                 drawRoundRect(
                                     brush = Brush.verticalGradient(
                                         listOf(
-                                            Color(0x1CFFFFFF),
+                                            Color(0x18FFFFFF),
                                             Color(0x0EFFFFFF)
                                         )
                                     ),
@@ -465,6 +625,7 @@ fun VibeDock(
                 )
             }
 
+            // Tab items row positioned on top of the sliding indicator
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -477,7 +638,7 @@ fun VibeDock(
                         label = "tabContentColor"
                     )
                     val contentScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.06f else 1.0f,
+                        targetValue = if (isSelected) 1.08f else 1.0f,
                         animationSpec = navSpring,
                         label = "tabContentScale"
                     )
@@ -502,7 +663,7 @@ fun VibeDock(
                                 indication = null,
                                 onClick = {
                                     if (selectedTab != index) {
-                                        Haptics.tabChange(view)
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onTabSelected(index)
                                     }
                                 }
@@ -528,6 +689,7 @@ fun VibeDock(
                                 modifier = Modifier.size(20.dp)
                             )
 
+                            // Only active tab expands its label! Inactive tabs are clean icons only
                             AnimatedVisibility(
                                 visible = isSelected,
                                 enter = fadeIn(animationSpec = tween(180, delayMillis = 20)) +
@@ -566,18 +728,3 @@ fun VibeDock(
     }
 }
 
-// Backward-compatible alias
-@Composable
-fun FloatingLiquidGlassBottomBar(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-    hazeState: HazeState? = null
-) {
-    VibeDock(
-        selectedTab = selectedTab,
-        onTabSelected = onTabSelected,
-        modifier = modifier,
-        hazeState = hazeState
-    )
-}

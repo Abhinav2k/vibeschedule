@@ -12,22 +12,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,13 +49,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
-import com.vibeschedule.app.ui.theme.BricolageGrotesque
-import com.vibeschedule.app.ui.util.Haptics
 import java.util.Calendar
 import java.util.Locale
 
@@ -58,7 +65,6 @@ fun AddEditScheduleDialog(
     onSave: (ScheduleRule) -> Unit
 ) {
     val context = LocalContext.current
-    val view = LocalView.current
 
     var title by remember { mutableStateOf(initialRule?.title ?: "") }
     var startHour by remember { mutableIntStateOf(initialRule?.startHour ?: 9) }
@@ -115,6 +121,7 @@ fun AddEditScheduleDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Title Field
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -125,6 +132,7 @@ fun AddEditScheduleDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                // Time Pickers
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -134,14 +142,12 @@ fun AddEditScheduleDialog(
                         hour = startHour,
                         minute = startMinute,
                         onTimeClick = {
-                            Haptics.click(view)
                             showTimePicker(startHour, startMinute) { h, m ->
                                 startHour = h
                                 startMinute = m
                             }
                         },
                         onAmPmToggle = { toAm ->
-                            Haptics.click(view)
                             startHour = updateHourAmPm(startHour, toAm)
                         },
                         modifier = Modifier.weight(1f)
@@ -152,20 +158,19 @@ fun AddEditScheduleDialog(
                         hour = endHour,
                         minute = endMinute,
                         onTimeClick = {
-                            Haptics.click(view)
                             showTimePicker(endHour, endMinute) { h, m ->
                                 endHour = h
                                 endMinute = m
                             }
                         },
                         onAmPmToggle = { toAm ->
-                            Haptics.click(view)
                             endHour = updateHourAmPm(endHour, toAm)
                         },
                         modifier = Modifier.weight(1f)
                     )
                 }
 
+                // Days Selection Header
                 Text(
                     text = "Repeat Days",
                     style = MaterialTheme.typography.labelLarge,
@@ -173,6 +178,7 @@ fun AddEditScheduleDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                // Quick Day Presets
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -189,33 +195,25 @@ fun AddEditScheduleDialog(
 
                     FilterChip(
                         selected = selectedDays.size == 7,
-                        onClick = {
-                            Haptics.click(view)
-                            selectedDays = allDays
-                        },
+                        onClick = { selectedDays = allDays },
                         label = { Text("Daily", style = MaterialTheme.typography.labelSmall) },
                         shape = CircleShape
                     )
                     FilterChip(
                         selected = selectedDays.size == 5 && selectedDays.containsAll(weekdays),
-                        onClick = {
-                            Haptics.click(view)
-                            selectedDays = weekdays
-                        },
+                        onClick = { selectedDays = weekdays },
                         label = { Text("Weekdays", style = MaterialTheme.typography.labelSmall) },
                         shape = CircleShape
                     )
                     FilterChip(
                         selected = selectedDays.size == 2 && selectedDays.containsAll(weekends),
-                        onClick = {
-                            Haptics.click(view)
-                            selectedDays = weekends
-                        },
+                        onClick = { selectedDays = weekends },
                         label = { Text("Weekends", style = MaterialTheme.typography.labelSmall) },
                         shape = CircleShape
                     )
                 }
 
+                // Individual Day Circles
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -243,7 +241,6 @@ fun AddEditScheduleDialog(
                                         MaterialTheme.colorScheme.surfaceContainer
                                 )
                                 .clickable {
-                                    Haptics.click(view)
                                     selectedDays = if (isSelected) {
                                         selectedDays - dayInt
                                     } else {
@@ -265,6 +262,7 @@ fun AddEditScheduleDialog(
                     }
                 }
 
+                // Sound Mode Selection
                 Text(
                     text = "Sound Mode During Schedule",
                     style = MaterialTheme.typography.labelLarge,
@@ -278,10 +276,7 @@ fun AddEditScheduleDialog(
                 ) {
                     FilterChip(
                         selected = targetMode == SoundMode.VIBRATE,
-                        onClick = {
-                            Haptics.click(view)
-                            targetMode = SoundMode.VIBRATE
-                        },
+                        onClick = { targetMode = SoundMode.VIBRATE },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Rounded.Vibration,
@@ -295,10 +290,7 @@ fun AddEditScheduleDialog(
                     )
                     FilterChip(
                         selected = targetMode == SoundMode.SILENT,
-                        onClick = {
-                            Haptics.click(view)
-                            targetMode = SoundMode.SILENT
-                        },
+                        onClick = { targetMode = SoundMode.SILENT },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Rounded.NotificationsOff,
@@ -316,10 +308,9 @@ fun AddEditScheduleDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    Haptics.confirm(view)
-                    val resolvedTitle = title.ifBlank { "Scheduled Quiet" }
+                    if (title.isBlank()) title = "Scheduled Quiet"
                     val newRule = (initialRule ?: ScheduleRule(
-                        title = resolvedTitle,
+                        title = title,
                         startHour = startHour,
                         startMinute = startMinute,
                         endHour = endHour,
@@ -327,7 +318,7 @@ fun AddEditScheduleDialog(
                         daysOfWeek = selectedDays,
                         targetMode = targetMode
                     )).copy(
-                        title = resolvedTitle,
+                        title = title,
                         startHour = startHour,
                         startMinute = startMinute,
                         endHour = endHour,
@@ -344,10 +335,7 @@ fun AddEditScheduleDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = {
-                Haptics.click(view)
-                onDismiss()
-            }) {
+            TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
         }
@@ -393,7 +381,6 @@ private fun MD3TimeBox(
             Text(
                 text = timeFormatted,
                 style = MaterialTheme.typography.headlineMedium,
-                fontFamily = BricolageGrotesque,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable { onTimeClick() }
@@ -401,6 +388,7 @@ private fun MD3TimeBox(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // AM / PM Toggle row
             Row(
                 modifier = Modifier
                     .clip(CircleShape)

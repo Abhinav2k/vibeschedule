@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.view.View
 import android.widget.RemoteViews
@@ -55,7 +56,7 @@ object NotificationHelper {
 
             showActiveStatusNotification(
                 context = context,
-                title = rule.title.ifBlank { "Scheduled Quiet" },
+                title = rule.title,
                 targetMode = rule.targetMode,
                 remainingMinutes = remainingMinutes,
                 totalMinutes = totalMinutes,
@@ -131,9 +132,10 @@ object NotificationHelper {
             "Schedule is actively running"
         }
 
+        // Use the app launcher icon for the notification status bar icon
         val appIconRes = R.mipmap.ic_launcher
 
-        // Custom Compact Layout
+        // Custom Compact Layout with big media-style buttons
         val collapsedView = RemoteViews(context.packageName, R.layout.notification_vibe_collapsed).apply {
             setTextViewText(R.id.notif_title, title)
             setTextViewText(R.id.notif_time_text, timeContent)
@@ -161,7 +163,14 @@ object NotificationHelper {
         val hasCountdown = endMillis != null && endMillis > System.currentTimeMillis()
         val notifCategory = if (hasCountdown) NotificationCompat.CATEGORY_PROGRESS else NotificationCompat.CATEGORY_STATUS
 
-        // Lock screen public version (prevents system from masking content on lock screen & AOD)
+        // Large icon bitmap of the app icon
+        val appIconBitmap = try {
+            BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
+        } catch (_: Throwable) {
+            null
+        }
+
+        // Lock screen public version (prevents system from masking or stripping content on lock screen & AOD)
         val publicNotification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(appIconRes)
             .setContentTitle(title)
@@ -176,6 +185,9 @@ object NotificationHelper {
             .setSilent(true)
             .setContentIntent(openAppPI)
             .apply {
+                if (appIconBitmap != null) {
+                    setLargeIcon(appIconBitmap)
+                }
                 if (hasCountdown && endMillis != null) {
                     setUsesChronometer(true)
                     setChronometerCountDown(true)
@@ -205,6 +217,9 @@ object NotificationHelper {
             .setOnlyAlertOnce(true)
             .setContentIntent(openAppPI)
             .apply {
+                if (appIconBitmap != null) {
+                    setLargeIcon(appIconBitmap)
+                }
                 if (hasCountdown && endMillis != null) {
                     setUsesChronometer(true)
                     setChronometerCountDown(true)
@@ -227,6 +242,7 @@ object NotificationHelper {
         try {
             notificationManager.notify(NOTIFICATION_ID, builder.build())
         } catch (e: Throwable) {
+            // Bulletproof fallback in case custom RemoteViews encounter any device-specific issue
             try {
                 val fallback = NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(appIconRes)
@@ -237,6 +253,11 @@ object NotificationHelper {
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .setContentIntent(openAppPI)
+                    .apply {
+                        if (appIconBitmap != null) {
+                            setLargeIcon(appIconBitmap)
+                        }
+                    }
                     .build()
                 notificationManager.notify(NOTIFICATION_ID, fallback)
             } catch (fallbackEx: Throwable) {
@@ -267,7 +288,7 @@ object NotificationHelper {
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_status_v5")
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_v6")
                 notificationManager.deleteNotificationChannel("vibe_schedule_active_v7")
-            } catch (_: Exception) { }
+            } catch (e: Exception) { }
 
             val channel = NotificationChannel(
                 CHANNEL_ID,

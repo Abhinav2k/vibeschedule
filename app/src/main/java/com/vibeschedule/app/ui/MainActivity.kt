@@ -14,6 +14,7 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -23,16 +24,30 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import com.vibeschedule.app.ui.components.FloatingLiquidGlassBottomBar
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -57,7 +72,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -65,14 +79,10 @@ import androidx.core.content.ContextCompat
 import com.vibeschedule.app.model.ScheduleRule
 import com.vibeschedule.app.model.SoundMode
 import com.vibeschedule.app.ui.components.AddEditScheduleDialog
-import com.vibeschedule.app.ui.components.VibeDock
 import com.vibeschedule.app.ui.screens.HomeScreen
 import com.vibeschedule.app.ui.screens.SchedulesScreen
 import com.vibeschedule.app.ui.screens.SettingsScreen
 import com.vibeschedule.app.ui.theme.VibeScheduleTheme
-import com.vibeschedule.app.ui.util.Haptics
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
 
 class MainActivity : ComponentActivity() {
 
@@ -112,7 +122,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainAppScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
-    val view = LocalView.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var previousTab by remember { mutableIntStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
@@ -130,9 +139,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 ),
                 navigationIcon = {
                     Surface(
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .size(38.dp),
+                        modifier = Modifier.padding(start = 12.dp).size(38.dp),
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.primaryContainer,
                         tonalElevation = 2.dp
@@ -157,10 +164,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 actions = {
                     AssistChip(
                         modifier = Modifier.padding(end = 12.dp),
-                        onClick = {
-                            Haptics.click(view)
-                            viewModel.evaluateStatus()
-                        },
+                        onClick = { viewModel.evaluateStatus() },
                         label = {
                             Text(
                                 text = when (currentSoundMode) {
@@ -197,6 +201,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
+            // Screen content container captured in real-time by Haze for authentic backdrop distortion & blur
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -234,23 +239,18 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     when (target) {
                         0 -> HomeScreen(
                             viewModel = viewModel,
-                            onNavigateToSchedules = {
-                                previousTab = selectedTab
-                                selectedTab = 1
-                            }
+                            onNavigateToSchedules = { previousTab = selectedTab; selectedTab = 1 }
                         )
                         1 -> SchedulesScreen(
                             viewModel = viewModel,
-                            onEditRule = { rule ->
-                                editingRule = rule
-                                showDialog = true
-                            }
+                            onEditRule = { rule -> editingRule = rule; showDialog = true }
                         )
                         2 -> SettingsScreen()
                     }
                 }
             }
 
+            // Floating Action Button for Schedules Tab (Tab 1), positioned cleanly above the floating bar
             AnimatedVisibility(
                 visible = selectedTab == 1,
                 enter = fadeIn(animationSpec = tween(180)) + scaleIn(initialScale = 0.8f),
@@ -261,11 +261,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     .padding(end = 20.dp, bottom = 86.dp)
             ) {
                 ExtendedFloatingActionButton(
-                    onClick = {
-                        Haptics.click(view)
-                        editingRule = null
-                        showDialog = true
-                    },
+                    onClick = { editingRule = null; showDialog = true },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
                     text = { Text("Add Schedule", style = MaterialTheme.typography.labelLarge) },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -274,7 +270,8 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 )
             }
 
-            VibeDock(
+            // Truly Floating Liquid Glass Bottom Navigation Bar with real-time backdrop blur & optical distortion
+            FloatingLiquidGlassBottomBar(
                 selectedTab = selectedTab,
                 onTabSelected = { newTab ->
                     previousTab = selectedTab

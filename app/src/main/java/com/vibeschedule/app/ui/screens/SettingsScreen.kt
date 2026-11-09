@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.CardDefaults
@@ -36,10 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.vibeschedule.app.ui.util.Haptics
 import com.vibeschedule.app.util.NotificationHelper
 
 const val PREFS_SETTINGS = "vibe_settings_prefs"
@@ -59,43 +58,6 @@ fun setNotifHighPriority(context: Context, value: Boolean) {
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var highPriority by remember { mutableStateOf(getNotifHighPriority(context)) }
-
-    SettingsContent(
-        highPriority = highPriority,
-        onToggleHighPriority = { value ->
-            highPriority = value
-            setNotifHighPriority(context, value)
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            NotificationHelper.createNotificationChannel(context, nm)
-        },
-        onOpenSystemSettings = {
-            try {
-                val intent = Intent().apply {
-                    action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
-                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                }
-                context.startActivity(intent)
-            } catch (_: Exception) {
-                try {
-                    val intent = Intent(Settings.ACTION_SETTINGS)
-                    context.startActivity(intent)
-                } catch (_: Exception) { }
-            }
-        },
-        appVersion = com.vibeschedule.app.BuildConfig.VERSION_NAME,
-        modifier = modifier
-    )
-}
-
-@Composable
-fun SettingsContent(
-    highPriority: Boolean,
-    onToggleHighPriority: (Boolean) -> Unit,
-    onOpenSystemSettings: () -> Unit,
-    appVersion: String,
-    modifier: Modifier = Modifier
-) {
-    val view = LocalView.current
 
     Column(
         modifier = modifier
@@ -156,8 +118,10 @@ fun SettingsContent(
                 Switch(
                     checked = highPriority,
                     onCheckedChange = { value ->
-                        Haptics.toggle(view, value)
-                        onToggleHighPriority(value)
+                        highPriority = value
+                        setNotifHighPriority(context, value)
+                        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        NotificationHelper.createNotificationChannel(context, nm)
                     },
                     thumbContent = if (highPriority) {
                         {
@@ -213,8 +177,18 @@ fun SettingsContent(
 
                 OutlinedButton(
                     onClick = {
-                        Haptics.click(view)
-                        onOpenSystemSettings()
+                        try {
+                            val intent = Intent().apply {
+                                action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            try {
+                                val intent = Intent(Settings.ACTION_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (_: Exception) { }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
@@ -262,7 +236,7 @@ fun SettingsContent(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Version $appVersion",
+                        text = "Version ${com.vibeschedule.app.BuildConfig.VERSION_NAME}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -270,6 +244,7 @@ fun SettingsContent(
             }
         }
 
+        // Clearance spacer for floating liquid glass navigation bar
         Spacer(modifier = Modifier.height(120.dp))
     }
 }
